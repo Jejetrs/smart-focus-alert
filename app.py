@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from io import BytesIO
 import base64
+from pyngrok import ngrok
 
 application = Flask(__name__)
 application.config['UPLOAD_FOLDER'] = os.path.join(os.path.realpath('.'), 'static', 'uploads')
@@ -413,6 +414,31 @@ def get_most_common_distraction(alerts):
     
     return f"{most_common} ({count} times, {total_duration}s total)"
 
+def calculate_average_focus_metric(focused_time, total_session_seconds):
+    """Calculate a meaningful average focus metric based on session duration"""
+    if total_session_seconds <= 0:
+        return "N/A"
+    
+    # Convert to minutes for easier reading
+    total_minutes = total_session_seconds / 60
+    focused_minutes = focused_time / 60
+    
+    # Different metrics based on session duration
+    if total_session_seconds < 60:  # Less than 1 minute
+        # Show focus percentage of session time
+        focus_percentage = (focused_time / total_session_seconds) * 100
+        return f"{focus_percentage:.1f}% of session time"
+    
+    elif total_session_seconds < 3600:  # Less than 1 hour
+        # Show focused minutes per session
+        return f"{focused_minutes:.1f} min focused out of {total_minutes:.1f} min total"
+    
+    else:  # 1 hour or more
+        # Show focused minutes per hour (extrapolated)
+        hours = total_session_seconds / 3600
+        focused_per_hour = focused_minutes / hours
+        return f"{focused_per_hour:.1f} min focused per hour"
+
 def generate_pdf_report(session_data, output_path):
     """Generate PDF report for session with corrected focus accuracy calculation"""
     doc = SimpleDocTemplate(output_path, pagesize=A4)
@@ -566,14 +592,17 @@ def generate_pdf_report(session_data, output_path):
     story.append(breakdown_table)
     story.append(Spacer(1, 20))
     
-    # Focus Statistics
+    # Focus Statistics - FIXED AVERAGE CALCULATION
     story.append(Paragraph("Detailed Focus Statistics", heading_style))
+    
+    # Calculate corrected average focus metric
+    average_focus_metric = calculate_average_focus_metric(focused_time, total_session_seconds)
     
     focus_stats = [
         ['Total Session Duration', format_time(total_session_seconds)],
         ['Focus Accuracy Score', f"{focus_accuracy:.2f}%"],
         ['Focus Quality Rating', focus_rating],
-        ['Average Focus per Hour', f"{(focused_time/total_session_seconds*60):.1f} minutes" if total_session_seconds > 0 else "N/A"],
+        ['Average Focus Metric', average_focus_metric],  # FIXED: More meaningful metric
         ['Distraction Frequency', f"{len(session_data['alerts'])} alerts in {format_time(total_session_seconds)}"],
         ['Most Common Distraction', get_most_common_distraction(session_data['alerts'])]
     ]
@@ -1367,5 +1396,48 @@ def api_detect():
     
     return jsonify({"error": "Unsupported file format"}), 400
 
-if __name__ == '__main__':
-    application.run(debug=True)
+@application.route('/check_camera')
+def check_camera():
+    """Cek camera server tersedia atau tidak"""
+    try:
+        camera = cv.VideoCapture(0)
+        is_available = camera.isOpened()
+        camera.release()
+        return jsonify({"camera_available": is_available})
+    except:
+        return jsonify({"camera_available": False})
+
+@application.route('/process_frame', methods=['POST'])
+def process_frame():
+    """Proses frame dari browser user"""
+    try:
+        data = request.get_json()
+        frame_data = data['frame'].split(',')[1]
+        frame_bytes = base64.b64decode(frame_data)
+        nparr = np.frombuffer(frame_bytes, np.uint8)
+        frame = cv.imdecode(nparr, cv.IMREAD_COLOR)
+        
+        # Proses detection seperti biasa
+        processed_frame, detections = detect_persons_with_attention(frame, mode="video")
+        
+        # Kirim balik ke browser
+        _, buffer = cv.imencode('.jpg', processed_frame)
+        processed_frame_b64 = base64.b64encode(buffer).decode('utf-8')
+        
+        return jsonify({
+            "success": True,
+            "processed_frame": f"data:image/jpeg;base64,{processed_frame_b64}",
+            "detections": detections
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@application.route("/")
+def index():
+    return "Hello, from ngrok!"
+
+if __name__ == "__main__":
+    port = 5000
+    public_url = ngrok.connect(port)
+    print("Public URL:", public_url)
+    application.run(port=port)
