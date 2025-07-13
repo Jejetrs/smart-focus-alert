@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload & Analyze - Smart Focus Alert</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --primary-blue: #60a5fa;
+            --primary-purple: #a78bfa;
+            --dark-bg: #0f172a;
+            --dark-secondary: #1e293b;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #06b6d4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-secondary) 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(96, 165, 250, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .navbar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .upload-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .what-you-get {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+            grid-column: 1;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            gap: 30px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-blue);
+        }
+
+        .title-lg {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--success), var(--info));
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-drop-zone {
+            border: 3px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.3);
+            min-height: 530px;
+            min-width: 700px ;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: var(--primary-blue);
+            background: rgba(96, 165, 250, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-drop-zone.dragover {
+            background: rgba(96, 165, 250, 0.15);
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+        }
+
+        .upload-icon {
+            font-size: 4.5rem;
+            color: var(--primary-blue);
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .file-drop-zone:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        .supported-formats {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .format-badge {
+            background: rgba(96, 165, 250, 0.2);
+            color: var(--primary-blue);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .upload-progress {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(96, 165, 250, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .file-info {
+            background: var(--glass-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .file-preview-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .file-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: rgba(15, 23, 42, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-details p {
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .file-details strong {
+            color: var(--text-primary);
+        }
+
+        .quick-tips {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 28px;
+            height: fit-content;
+        }
+
+        .tip-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .tip-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .tip-icon {
+            color: var(--success);
+            margin-top: 2px;
+            flex-shrink: 0;
+            font-size: 1.2rem;
+        }
+
+        .tip-content h4 {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .tip-content p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .what-you-get {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+        }
+
+        .what-you-get h3 {
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .output-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .output-section h4 {
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .output-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .output-list li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .output-list li i {
+            color: var(--success);
+        }
+
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+        }
+
+        .message-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        .slide-in { animation: slideIn 0.6s ease-out; }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .output-sections {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links { 
+                flex-direction: column; 
+                gap: 12px; 
+            }
+            
+            .title-lg { 
+                font-size: 2rem; 
+            }
+            
+            .upload-container { 
+                padding: 16px; 
+            }
+            
+            .file-drop-zone { 
+                padding: 40px 20px;
+                min-height: 300px;
+            }
+            
+            .file-preview-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="flex justify-between items-center">
+                <a href="/" class="nav-brand text-gradient">
+                    <i class="fas fa-eye" style="margin-right: 8px;"></i>
+                    Smart Focus Alert
+                </a>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/webcam" class="nav-link">Live Monitoring</a>
+                    <a href="/upload" class="nav-link active">Upload</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="upload-container">
+        <!-- Header -->
+        <div class="text-center fade-in">
+            <h1 class="title-lg text-gradient">Upload & Analyze</h1>
+            <p style="color: var(--text-secondary);">Upload images or videos to analyze focus patterns with AI-powered detection.</p>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Main Content Grid -->
+            <div class="main-content">
+                <!-- Left Column -->
+                <div class="left-column">
+                    <!-- Upload Form -->
+                    <form id="uploadForm" method="POST" enctype="multipart/form-data" class="slide-in">
+                        <!-- File Drop Zone -->
+                        <div class="file-drop-zone" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 8px;" class="text-gradient">Drop your files here or click to browse</h3>
+                            <input type="file" id="fileInput" name="file" accept="image/*,video/*" style="display: none;">
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-folder-open" style="margin-right: 8px;"></i>
+                                Browse file
+                            </button>
+                            
+                            <div class="supported-formats">
+                                <span class="format-badge">JPG</span>
+                                <span class="format-badge">PNG</span>
+                                <span class="format-badge">MP4</span>
+                                <span class="format-badge">AVI</span>
+                                <span class="format-badge">MOV</span>
+                                <span class="format-badge">MKV</span>
+                            </div>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div class="upload-progress" id="uploadProgress">
+                            <div class="flex justify-between items-center" style="margin-bottom: 8px;">
+                                <span style="color: var(--text-secondary);">Processing & Analyzing...</span>
+                                <span style="color: var(--text-secondary);" id="progressPercent">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                        </div>
+
+                        <!-- File Info -->
+                        <div class="file-info" id="fileInfo">
+                            <h4 style="font-weight: 600; margin-bottom: 16px; color: var(--primary-blue);">Selected File</h4>
+                            <div class="file-preview-container">
+                                <div class="file-preview" id="filePreviewContainer">
+                                    <img id="filePreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: none;" alt="File preview">
+                                    <div id="videoPreview" style="display: none;">
+                                        <i class="fas fa-video" style="font-size: 3rem; color: var(--info);"></i>
+                                    </div>
+                                </div>
+                                <div class="file-details">
+                                    <p><strong>Name :</strong> <span id="fileName"></span></p>
+                                    <p><strong>Size :</strong> <span id="fileSize"></span></p>
+                                    <p><strong>Type :</strong> <span id="fileType"></span></p>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary" id="analyzeBtn" disabled style="width: 100%; margin-top: 16px;">
+                                <i class="fas fa-search" style="margin-right: 8px;"></i>
+                                Analyze & Generate Report
+                            </button>
+                        </div>
+
+                        <!-- Messages -->
+                        <div class="message message-error" id="errorMessage">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span id="errorText"></span>
+                        </div>
+
+                        <div class="message message-success" id="successMessage">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="successText"></span>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column -->
+                <div class="right-column">
+                    <!-- Quick Tips -->
+                    <div class="quick-tips slide-in">
+                        <h3 style="color: var(--warning); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                            <i class="fas fa-lightbulb"></i>
+                            Quick Tips
+                        </h3>
+                        
+                        <div class="tip-item">
+                            <i class="fas fa-check tip-icon"></i>
+                            <div class="tip-content">
+                                <h4>Good Lighting</h4>
+                                <p>Ensure faces are well-lit and clearly visible for accurate landmark detection</p>
+                            </div>
+                        </div>
+                        
+                        <div class="tip-item">
+                            <i class="fas fa-check tip-icon"></i>
+                            <div class="tip-content">
+                                <h4>Front-facing</h4>
+                                <p>Faces should be facing the camera directly for optimal iris tracking</p>
+                            </div>
+                        </div>
+                        
+                        <div class="tip-item">
+                            <i class="fas fa-check tip-icon"></i>
+                            <div class="tip-content">
+                                <h4>Clear Images:</h4>
+                                <p>Use high-resolution images for better facial landmark precision</p>
+                            </div>
+                        </div>
+                        
+                        <div class="tip-item">
+                            <i class="fas fa-check tip-icon"></i>
+                            <div class="tip-content">
+                                <h4>File Size:</h4>
+                                <p>Keep files under 100MB for faster processing and report generation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What You'll Get - Full Width Below -->
+            <div class="what-you-get slide-in">
+                <h3>
+                    <i class="fas fa-bookmark"></i>
+                    What You'll Get ?
+                </h3>
+                
+                <div class="output-sections">
+                    <div class="output-section">
+                        <h4>Processed Media</h4>
+                        <ul class="output-list">
+                            <li><i class="fas fa-check"></i> Facial landmark overlays</li>
+                            <li><i class="fas fa-check"></i> Detection state indicators</li>
+                            <li><i class="fas fa-check"></i> Bounding box annotations</li>
+                            <li><i class="fas fa-check"></i> Individual face crops</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="output-section">
+                        <h4>PDF Report</h4>
+                        <ul class="output-list">
+                            <li><i class="fas fa-check"></i> File information & metadata</li>
+                            <li><i class="fas fa-check"></i> Focus accuracy statistics</li>
+                            <li><i class="fas fa-check"></i> Individual detection results</li>
+                            <li><i class="fas fa-check"></i> Professional formatting</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedFile = null;
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            setupEventListeners();
+        });
+
+        function initializePage() {
+            // Page load animation
+            document.body.style.opacity = "0";
+            document.body.style.transition = "opacity 0.6s ease";
+            setTimeout(() => {
+                document.body.style.opacity = "1";
+            }, 100);
+        }
+
+        function setupEventListeners() {
+            // Drag and drop functionality
+            dropZone.addEventListener('dragover', handleDragOver);
+            dropZone.addEventListener('dragleave', handleDragLeave);
+            dropZone.addEventListener('drop', handleDrop);
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            // Form submission
+            document.getElementById('uploadForm').addEventListener('submit', handleFormSubmit);
+
+            // Navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.getAttribute('href').startsWith('/')) {
+                        e.preventDefault();
+                        document.body.style.opacity = "0";
+                        setTimeout(() => {
+                            window.location.href = this.getAttribute('href');
+                        }, 300);
+                    }
+                });
+            });
+
+            // Button hover effects
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    if (!this.disabled) {
+                        this.style.transform = 'translateY(-3px) scale(1.05)';
+                    }
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        }
+
+        function handleFileSelect(file) {
+            // Validate file type
+            const validTypes = [
+                'image/jpeg', 'image/jpg', 'image/png', 'image/bmp',
+                'video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 'video/x-msvideo'
+            ];
+            
+            if (!validTypes.includes(file.type)) {
+                showError('Please select a valid image (JPG, PNG, BMP) or video file (MP4, AVI, MOV)');
+                return;
+            }
+
+            // Validate file size (100MB limit)
+            if (file.size > 100 * 1024 * 1024) {
+                showError('File size must be less than 100MB');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Show file info
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileType').textContent = file.type;
+
+            // Show preview
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('filePreview').src = e.target.result;
+                    document.getElementById('filePreview').style.display = 'block';
+                    document.getElementById('videoPreview').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('filePreview').style.display = 'none';
+                document.getElementById('videoPreview').style.display = 'block';
+            }
+
+            fileInfo.style.display = 'block';
+            analyzeBtn.disabled = false;
+            hideMessages();
+
+            showSuccess(`File "${file.name}" selected successfully. Ready for analysis with PDF report generation.`);
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (!selectedFile) {
+                showError('Please select a file first');
+                return;
+            }
+
+            // Show progress
+            uploadProgress.style.display = 'block';
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Analyzing & Generating Report...';
+
+            // Simulate progress
+            simulateProgress();
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            // Submit form
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text();
+                } else {
+                    throw new Error('Upload failed');
+                }
+            })
+            .then(html => {
+                // Handle success - replace page content
+                document.body.innerHTML = html;
+                window.history.pushState({}, '', '/upload');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Upload failed. Please try again.');
+                resetUploadState();
+            });
+        }
+
+        function simulateProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 95) progress = 95;
+                
+                progressFill.style.width = progress + '%';
+                progressPercent.textContent = Math.round(progress) + '%';
+                
+                if (progress >= 95) {
+                    clearInterval(interval);
+                }
+            }, 200);
+        }
+
+        function resetUploadState() {
+            uploadProgress.style.display = 'none';
+            analyzeBtn.disabled = false;
+            analyzeBtn.innerHTML = '<i class="fas fa-search" style="margin-right: 8px;"></i>Analyze & Generate Report';
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').style.display = 'flex';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successText').textContent = message;
+            document.getElementById('successMessage').style.display = 'flex';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            // Auto hide success message
+            setTimeout(() => {
+                document.getElementById('successMessage').style.display = 'none';
+            }, 4000);
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'o') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+    </script>
+</body>
+</html>

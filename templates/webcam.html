@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Focus Monitoring - Smart Focus Alert</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* Global CSS Variables */
+        :root {
+            --primary-blue: #60a5fa;
+            --primary-purple: #a78bfa;
+            --dark-bg: #0f172a;
+            --dark-secondary: #1e293b;
+            --card-bg: #1e293b;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #06b6d4;
+            --sidebar-bg: #334155;
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--dark-bg);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Utility Classes */
+        .flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .items-center { align-items: center; }
+        .text-center { text-align: center; }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Container Component */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navbar Component */
+        .navbar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-brand i {
+            color: var(--primary-blue);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-blue);
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(96, 165, 250, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-padding {
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Button Component */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--success), var(--info));
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Sidebar Card Component */
+        .sidebar-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Live Indicator Component */
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .live-indicator.active {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .live-dot.active {
+            background: var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Status Components */
+        .status-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 24px;
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .status-display.status-focused {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .status-display.status-unfocused {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .status-display.status-yawning {
+            background: rgba(234, 179, 8, 0.1);
+            color: #eab308;
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+
+        .status-display.status-sleeping {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+            background-color: var(--text-muted);
+        }
+
+        .status-indicator.status-focused { background-color: var(--success); }
+        .status-indicator.status-unfocused { background-color: var(--warning); }
+        .status-indicator.status-yawning { background-color: #eab308; }
+        .status-indicator.status-sleeping { background-color: var(--danger); }
+
+        /* Statistics Grid Component */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--dark-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Toggle Switch Component */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.off {
+            background: var(--text-muted);
+        }
+
+        .toggle-switch.off::before {
+            transform: translateX(-26px);
+        }
+
+        /* Page Layout */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            min-height: calc(100vh - 88px);
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Monitoring Status - Full Width */
+        .monitoring-status-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 24px;
+        }
+
+        /* Two Column Layout */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .video-container {
+            background: var(--dark-bg);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 450px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .video-stream {
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-placeholder {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+        }
+
+        .video-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+        }
+
+        .controls-panel {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .left-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--dark-bg);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .connection-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(245, 158, 11, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--warning);
+        }
+
+        .connection-text {
+            flex: 1;
+        }
+
+        .connection-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .connection-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .audio-alert {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background: var(--dark-bg);
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .thresholds-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .threshold-item {
+            text-align: center;
+            padding: 16px 12px;
+            background: var(--dark-bg);
+            border-radius: 8px;
+        }
+
+        .threshold-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .threshold-time {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .threshold-sleep .threshold-label { color: var(--danger); }
+        .threshold-yawning .threshold-label { color: var(--warning); }
+        .threshold-focus .threshold-label { color: var(--info); }
+
+        .alert-history {
+            max-height: 250px;
+            overflow-y: auto;
+            background: var(--dark-bg);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .alert-history::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .alert-history::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 3px;
+        }
+
+        .alert-history::-webkit-scrollbar-thumb {
+            background: var(--primary-blue);
+            border-radius: 3px;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+            border-left: 4px solid var(--info);
+        }
+
+        .alert-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .volume-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .volume-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--dark-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .download-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--dark-bg);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .download-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(96, 165, 250, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-blue);
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .right-column {
+                order: -1;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .main-container {
+                padding: 20px 16px;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            
+            .thresholds-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .controls-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar Component -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="flex justify-between items-center">
+                <a href="/" class="nav-brand text-gradient">
+                    <i class="fas fa-eye"></i>
+                    Smart Focus Alert
+                </a>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/webcam" class="nav-link active">Live Monitoring</a>
+                    <a href="/upload" class="nav-link">Upload</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title text-gradient">Live Focus Monitoring</h1>
+            <p class="page-subtitle">Real-time focus detection with facial landmarks, automatic recording, and comprehensive reporting</p>
+        </div>
+
+        <!-- Monitoring Status Card - Full Width -->
+        <div class="monitoring-status-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Monitoring Status
+                </h2>
+                <div class="live-indicator" id="liveIndicator">
+                    <div class="live-dot" id="liveDot"></div>
+                    <span id="liveText">READY</span>
+                </div>
+            </div>
+            
+            <div class="status-display" id="currentStatus">
+                <span class="status-indicator"></span>
+                System Ready - Click Start to begin monitoring with automatic recording
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--success);" id="totalPersons">0</div>
+                    <div class="stat-label">Persons Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--info);" id="focusedCount">0</div>
+                    <div class="stat-label">Currently Focused</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--warning);" id="alertCount">0</div>
+                    <div class="stat-label">Total Alerts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value text-gradient" id="sessionTime">00:00:00</div>
+                    <div class="stat-label">Session Time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="content-grid">
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- Video Panel -->
+                <div class="video-container">
+                    <img src="" class="video-stream" id="videoStream" alt="Live Video Feed" style="display: none;">
+                    
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <i class="fas fa-video"></i>
+                        <h3 style="margin-bottom: 12px;">Enhanced Detection Ready</h3>
+                        <p style="margin-bottom: 20px;">Click "Start Monitoring" to begin detection with time-based alerts</p>
+                        <div style="text-align: left; max-width: 400px; line-height: 1.6;">
+                            <div style="margin-bottom: 8px;">• <strong>Sleep Detection:</strong> Alert after 10 seconds</div>
+                            <div style="margin-bottom: 8px;">• <strong>Yawning Detection:</strong> Alert after 5 seconds</div>
+                            <div style="margin-bottom: 8px;">• <strong>Unfocus Detection:</strong> Alert after 10 seconds</div>
+                            <div>• <strong>Voice + Beep Alerts:</strong> Automatic notifications</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls-panel">
+                    <button class="btn btn-primary" id="startBtn" onclick="startMonitoring()">
+                        <i class="fas fa-play"></i>
+                        Start Monitoring
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopMonitoring()" disabled>
+                        <i class="fas fa-stop"></i>
+                        Stop & Generate Report
+                    </button>
+                    <button class="btn btn-secondary" onclick="takeScreenshot()" id="screenshotBtn" disabled>
+                        <i class="fas fa-camera"></i>
+                        Screenshot
+                    </button>
+                </div>
+
+                <!-- Alert Volume Card -->
+                <div class="left-card">
+                    <div class="sidebar-header">
+                        <i class="fas fa-volume-up"></i>
+                        Alert Volume
+                    </div>
+                    
+                    <label class="volume-label">Choose volume level:</label>
+                    <select class="volume-select" id="alertVolume">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <!-- Session Downloads Card -->
+                <div class="left-card" style="display: none;" id="downloadsSection">
+                    <div class="sidebar-header">
+                        <i class="fas fa-download"></i>
+                        Session Downloads
+                    </div>
+                    <div id="downloadItems">
+                        <!-- Download items will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Connection Status -->
+                <div class="sidebar-card">
+                    <div class="connection-status">
+                        <div class="connection-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="connection-text">
+                            <div class="connection-title">Ready to Connect</div>
+                            <div class="connection-subtitle">Webcam access ready</div>
+                        </div>
+                    </div>
+
+                    <div class="audio-alert">
+                        <i class="fas fa-volume-up" style="color: var(--text-secondary);"></i>
+                        <span style="flex: 1; font-weight: 500;">Audio Alert</span>
+                        <div class="toggle-switch" onclick="toggleAudioAlert()"></div>
+                    </div>
+
+                    <div class="audio-alert" style="margin-bottom: 0;">
+                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Sound Alerts Enabled</span>
+                    </div>
+                </div>
+
+                <!-- Detection Thresholds -->
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <i class="fas fa-list"></i>
+                        Detection Thresholds
+                    </div>
+                    
+                    <div class="thresholds-grid">
+                        <div class="threshold-item threshold-sleep">
+                            <div class="threshold-label">Sleep</div>
+                            <div class="threshold-time">10 seconds</div>
+                        </div>
+                        <div class="threshold-item threshold-yawning">
+                            <div class="threshold-label">Yawning</div>
+                            <div class="threshold-time">3.5 seconds</div>
+                        </div>
+                        <div class="threshold-item threshold-focus">
+                            <div class="threshold-label">No Focus</div>
+                            <div class="threshold-time">10 seconds</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert History -->
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <i class="fas fa-list"></i>
+                        Alert History
+                    </div>
+                    
+                    <div class="alert-history" id="alertHistory">
+                        <div class="text-center" style="color: var(--text-secondary); padding: 20px;">
+                            <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                            <p>No alerts yet - monitoring not started</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Session variables
+        let sessionStartTime = null;
+        let alertCount = 0;
+        let isMonitoring = false;
+        let sessionTimer = null;
+        let dataUpdateTimer = null;
+        let lastAlertIds = new Set();
+        let audioEnabled = true;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            setupEventListeners();
+            checkMonitoringStatus();
+        });
+
+        function initializePage() {
+            document.body.style.opacity = "0";
+            document.body.style.transition = "opacity 0.6s ease";
+            setTimeout(() => {
+                document.body.style.opacity = "1";
+            }, 100);
+        }
+
+        function setupEventListeners() {
+            // Navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.getAttribute('href').startsWith('/')) {
+                        e.preventDefault();
+                        document.body.style.opacity = "0";
+                        setTimeout(() => {
+                            window.location.href = this.getAttribute('href');
+                        }, 300);
+                    }
+                });
+            });
+
+            // Button hover effects
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    if (!this.disabled) {
+                        this.style.transform = 'translateY(-3px) scale(1.05)';
+                    }
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    if (isMonitoring) {
+                        stopMonitoring();
+                    }
+                }
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isMonitoring) {
+                        takeScreenshot();
+                    }
+                }
+            });
+
+            // Volume change notification
+            document.getElementById('alertVolume').addEventListener('change', function() {
+                showNotification(`Alert volume changed to ${this.value}`, 'info');
+            });
+        }
+
+        function toggleAudioAlert() {
+            audioEnabled = !audioEnabled;
+            const toggle = document.querySelector('.toggle-switch');
+            const statusText = document.querySelector('.audio-alert:last-of-type span');
+            
+            if (audioEnabled) {
+                toggle.classList.remove('off');
+                statusText.textContent = 'Sound Alerts Enabled';
+                statusText.style.color = 'var(--success)';
+            } else {
+                toggle.classList.add('off');
+                statusText.textContent = 'Sound Alerts Disabled';
+                statusText.style.color = 'var(--text-muted)';
+            }
+        }
+
+        function checkMonitoringStatus() {
+            // Simulate checking monitoring status
+            console.log('Checking monitoring status...');
+        }
+
+        function startMonitoring() {
+            updateUIForActiveMonitoring();
+            startDataUpdates();
+            showNotification('Monitoring started with automatic recording', 'success');
+        }
+
+        function stopMonitoring() {
+            updateUIForInactiveMonitoring();
+            stopDataUpdates();
+            showNotification('Session complete! PDF report and recording generated.', 'success');
+            
+            // Show download options
+            showDownloads('/reports/session_report.pdf', '/recordings/session_video.mp4');
+        }
+
+        function updateUIForActiveMonitoring() {
+            isMonitoring = true;
+            sessionStartTime = Date.now();
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('screenshotBtn').disabled = false;
+            
+            const liveIndicator = document.getElementById('liveIndicator');
+            const liveDot = document.getElementById('liveDot');
+            const liveText = document.getElementById('liveText');
+            
+            liveIndicator.classList.add('active');
+            liveDot.classList.add('active');
+            liveText.textContent = 'LIVE • RECORDING';
+            
+            document.getElementById('videoStream').src = '/video_feed';
+            document.getElementById('videoStream').style.display = 'block';
+            document.getElementById('videoPlaceholder').style.display = 'none';
+            
+            updateCurrentStatus('READY');
+            startSessionTimer();
+            
+            const alertHistory = document.getElementById('alertHistory');
+            alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Monitoring started - automatic recording active</p></div>';
+            
+            lastAlertIds.clear();
+        }
+
+        function updateUIForInactiveMonitoring() {
+            isMonitoring = false;
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('screenshotBtn').disabled = true;
+            
+            const liveIndicator = document.getElementById('liveIndicator');
+            const liveDot = document.getElementById('liveDot');
+            const liveText = document.getElementById('liveText');
+            
+            liveIndicator.classList.remove('active');
+            liveDot.classList.remove('active');
+            liveText.textContent = 'READY';
+            
+            document.getElementById('videoStream').style.display = 'none';
+            document.getElementById('videoStream').src = '';
+            document.getElementById('videoPlaceholder').style.display = 'block';
+            
+            updateCurrentStatus('READY');
+            
+            if (sessionTimer) {
+                clearInterval(sessionTimer);
+                sessionTimer = null;
+            }
+            
+            document.getElementById('totalPersons').textContent = '0';
+            document.getElementById('focusedCount').textContent = '0';
+        }
+
+        function startDataUpdates() {
+            dataUpdateTimer = setInterval(() => {
+                if (isMonitoring) {
+                    // Simulate data updates
+                    updateMonitoringDisplay({
+                        total_persons: Math.floor(Math.random() * 5),
+                        focused_count: Math.floor(Math.random() * 3),
+                        alert_count: alertCount,
+                        current_status: 'FOCUSED'
+                    });
+                }
+            }, 2000);
+        }
+
+        function stopDataUpdates() {
+            if (dataUpdateTimer) {
+                clearInterval(dataUpdateTimer);
+                dataUpdateTimer = null;
+            }
+        }
+
+        function updateMonitoringDisplay(data) {
+            document.getElementById('totalPersons').textContent = data.total_persons || 0;
+            document.getElementById('focusedCount').textContent = data.focused_count || 0;
+            document.getElementById('alertCount').textContent = data.alert_count || 0;
+            
+            const currentStatus = data.current_status || 'READY';
+            updateCurrentStatus(currentStatus);
+        }
+
+        function updateCurrentStatus(status) {
+            const statusElement = document.getElementById('currentStatus');
+            const statusClasses = ['status-ready', 'status-focused', 'status-unfocused', 'status-yawning', 'status-sleeping'];
+            
+            statusClasses.forEach(cls => statusElement.classList.remove(cls));
+            
+            let statusClass, message;
+            switch(status) {
+                case 'FOCUSED':
+                    statusClass = 'status-focused';
+                    message = 'All persons are focused - Recording active';
+                    break;
+                case 'NOT FOCUSED':
+                    statusClass = 'status-unfocused';
+                    message = 'Some persons are not focused - Recording active';
+                    break;
+                case 'YAWNING':
+                    statusClass = 'status-yawning';
+                    message = 'Yawning detected - fatigue signs - Recording active';
+                    break;
+                case 'SLEEPING':
+                    statusClass = 'status-sleeping';
+                    message = 'Sleep detected - eyes closed - Recording active';
+                    break;
+                default:
+                    statusClass = 'status-ready';
+                    message = 'Monitoring active - detecting faces - Recording in progress';
+            }
+            
+            statusElement.classList.add(statusClass);
+            statusElement.innerHTML = `
+                <span class="status-indicator ${statusClass.replace('status-', 'status-')}"></span>
+                ${message}
+            `;
+        }
+
+        function startSessionTimer() {
+            sessionTimer = setInterval(() => {
+                if (sessionStartTime) {
+                    const elapsed = Date.now() - sessionStartTime;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('sessionTime').textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function showDownloads(pdfReport, videoFile) {
+            const downloadsSection = document.getElementById('downloadsSection');
+            const downloadItems = document.getElementById('downloadItems');
+            
+            downloadItems.innerHTML = '';
+            
+            if (pdfReport) {
+                const pdfItem = document.createElement('div');
+                pdfItem.className = 'download-item';
+                pdfItem.innerHTML = `
+                    <div class="download-info">
+                        <div class="file-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">Session Report</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">PDF with comprehensive analysis</div>
+                        </div>
+                    </div>
+                    <a href="${pdfReport}" download class="btn btn-primary">
+                        <i class="fas fa-download"></i>
+                    </a>
+                `;
+                downloadItems.appendChild(pdfItem);
+            }
+            
+            if (videoFile) {
+                const videoItem = document.createElement('div');
+                videoItem.className = 'download-item';
+                videoItem.innerHTML = `
+                    <div class="download-info">
+                        <div class="file-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">Session Recording</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Full HD video with overlays</div>
+                        </div>
+                    </div>
+                    <a href="${videoFile}" download class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                    </a>
+                `;
+                downloadItems.appendChild(videoItem);
+            }
+            
+            downloadsSection.style.display = 'block';
+        }
+
+        function takeScreenshot() {
+            showNotification('Screenshot captured successfully', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--glass-bg);
+                border: 1px solid var(--glass-border);
+                border-radius: 8px;
+                padding: 16px;
+                color: var(--text-primary);
+                z-index: 1000;
+                max-width: 300px;
+                animation: slideInRight 0.3s ease-out;
+                backdrop-filter: blur(10px);
+            `;
+            
+            const colors = {
+                success: 'var(--success)',
+                warning: 'var(--warning)',
+                error: 'var(--danger)',
+                info: 'var(--info)'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                warning: 'fa-exclamation-triangle',
+                error: 'fa-times-circle',
+                info: 'fa-info-circle'
+            };
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas ${icons[type] || icons.info}" style="color: ${colors[type] || colors.info};"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Add slideInRight animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

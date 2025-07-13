@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Components Library - Smart Focus Alert</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* Global CSS Variables */
+        :root {
+            --primary-blue: #60a5fa;
+            --primary-purple: #a78bfa;
+            --dark-bg: #0f172a;
+            --dark-secondary: #1e293b;
+            --card-bg: #1e293b;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #06b6d4;
+            --sidebar-bg: #334155;
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--dark-bg);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Utility Classes */
+        .flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .items-center { align-items: center; }
+        .text-center { text-align: center; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mb-8 { margin-bottom: 32px; }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Container Component */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navbar Component */
+        .navbar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-brand i {
+            color: var(--primary-blue);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-blue);
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(96, 165, 250, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-padding {
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Button Component */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--success), var(--info));
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Sidebar Card Component */
+        .sidebar-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Status Components */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .status-badge.focused {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.unfocused {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-badge.yawning {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .status-badge.sleeping {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.status-focused { background-color: var(--success); }
+        .status-indicator.status-unfocused { background-color: var(--warning); }
+        .status-indicator.status-yawning { background-color: #eab308; }
+        .status-indicator.status-sleeping { background-color: var(--danger); }
+
+        /* File Drop Zone Component */
+        .file-drop-zone {
+            border: 3px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: var(--primary-blue);
+            background: rgba(96, 165, 250, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 4.5rem;
+            color: var(--primary-blue);
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .file-drop-zone:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        /* Format Badge Component */
+        .format-badge {
+            background: rgba(96, 165, 250, 0.2);
+            color: var(--primary-blue);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Notification Component */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 16px;
+            color: var(--text-primary);
+            z-index: 1000;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        .notification-success { border-left: 4px solid var(--success); }
+        .notification-warning { border-left: 4px solid var(--warning); }
+        .notification-error { border-left: 4px solid var(--danger); }
+        .notification-info { border-left: 4px solid var(--info); }
+
+        /* Progress Bar Component */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(96, 165, 250, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        /* Toggle Switch Component */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.off {
+            background: var(--text-muted);
+        }
+
+        .toggle-switch.off::before {
+            transform: translateX(-26px);
+        }
+
+        /* Statistics Grid Component */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--dark-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Live Indicator Component */
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .live-indicator.active {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .live-dot.active {
+            background: var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .container {
+                padding: 0 16px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Component Library Demo -->
+    <div class="container" style="padding: 40px 20px;">
+        <h1 class="text-gradient text-center mb-8">Smart Focus Alert - Components Library</h1>
+        
+        <!-- Navbar Component Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Navbar Component</h2>
+            <nav class="navbar">
+                <div class="container">
+                    <div class="flex justify-between items-center">
+                        <a href="/" class="nav-brand text-gradient">
+                            <i class="fas fa-eye"></i>
+                            Smart Focus Alert
+                        </a>
+                        <div class="nav-links">
+                            <a href="/" class="nav-link active">Home</a>
+                            <a href="/webcam" class="nav-link">Live Monitoring</a>
+                            <a href="/upload" class="nav-link">Upload</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </section>
+
+        <!-- Card Component Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Card Components</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="card card-padding">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-line"></i>
+                            Sample Card
+                        </h3>
+                    </div>
+                    <p style="color: var(--text-secondary);">This is a sample card component with consistent styling.</p>
+                </div>
+                
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <i class="fas fa-cog"></i>
+                        Sidebar Card
+                    </div>
+                    <p style="color: var(--text-secondary);">This is a sidebar card component.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Button Component Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Button Components</h2>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <button class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                    Primary Button
+                </button>
+                <button class="btn btn-secondary">
+                    <i class="fas fa-upload"></i>
+                    Secondary Button
+                </button>
+                <button class="btn btn-danger">
+                    <i class="fas fa-stop"></i>
+                    Danger Button
+                </button>
+                <button class="btn btn-primary" disabled>
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Disabled Button
+                </button>
+            </div>
+        </section>
+
+        <!-- Status Badge Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Status Badges</h2>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <div class="status-badge focused">
+                    <span class="status-indicator status-focused"></span>
+                    FOCUSED
+                </div>
+                <div class="status-badge unfocused">
+                    <span class="status-indicator status-unfocused"></span>
+                    NOT FOCUSED
+                </div>
+                <div class="status-badge yawning">
+                    <span class="status-indicator status-yawning"></span>
+                    YAWNING
+                </div>
+                <div class="status-badge sleeping">
+                    <span class="status-indicator status-sleeping"></span>
+                    SLEEPING
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Grid Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Statistics Grid</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--success);">3</div>
+                    <div class="stat-label">Total Persons</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--info);">2</div>
+                    <div class="stat-label">Currently Focused</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--warning);">5</div>
+                    <div class="stat-label">Total Alerts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value text-gradient">00:15:30</div>
+                    <div class="stat-label">Session Time</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Bar Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Progress Bar</h2>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 65%;"></div>
+            </div>
+        </section>
+
+        <!-- Toggle Switch Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Toggle Switch</h2>
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+                <span>Audio Alerts</span>
+            </div>
+        </section>
+
+        <!-- Live Indicator Demo -->
+        <section class="mb-8">
+            <h2 class="mb-4">Live Indicator</h2>
+            <div style="display: flex; gap: 20px;">
+                <div class="live-indicator">
+                    <div class="live-dot"></div>
+                    <span>READY</span>
+                </div>
+                <div class="live-indicator active">
+                    <div class="live-dot active"></div>
+                    <span>LIVE • RECORDING</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Component interaction demos
+        document.addEventListener('DOMContentLoaded', function() {
+            // Button hover effects
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    if (!this.disabled) {
+                        this.style.transform = 'translateY(-3px) scale(1.05)';
+                    }
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Card hover effects
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+
+        // Utility functions for components
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        function updateProgress(percentage) {
+            const progressFill = document.querySelector('.progress-fill');
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
+        }
+    </script>
+</body>
+</html>
