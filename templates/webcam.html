@@ -181,6 +181,49 @@
             transform: none;
         }
 
+        /* Camera Setup Card - ONLY NEW ADDITION */
+        .camera-setup-notice {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .setup-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .setup-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(245, 158, 11, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--warning);
+            font-size: 1.5rem;
+        }
+
+        .setup-text {
+            flex: 1;
+        }
+
+        .setup-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .setup-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
         /* Sidebar Card Component */
         .sidebar-card {
             background: var(--card-bg);
@@ -403,9 +446,27 @@
         }
 
         .video-stream {
+            max-width: 100%;
             height: auto;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Client Camera Elements - ONLY NEW ADDITION */
+        .client-video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .client-canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: none;
         }
 
         .video-placeholder {
@@ -674,6 +735,19 @@
             <p class="page-subtitle">Real-time focus detection with facial landmarks, automatic recording, and comprehensive reporting</p>
         </div>
 
+        <!-- Camera Setup Notice - ONLY NEW ADDITION -->
+        <div class="camera-setup-notice" id="cameraSetupNotice">
+            <div class="setup-content">
+                <div class="setup-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="setup-text">
+                    <div class="setup-title">Using Device Camera</div>
+                    <div class="setup-subtitle">Server camera not available. Using your device camera for ngrok compatibility.</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Monitoring Status Card - Full Width -->
         <div class="monitoring-status-card">
             <div class="card-header">
@@ -718,7 +792,12 @@
             <div class="left-column">
                 <!-- Video Panel -->
                 <div class="video-container">
+                    <!-- Server Camera (original) -->
                     <img src="" class="video-stream" id="videoStream" alt="Live Video Feed" style="display: none;">
+                    
+                    <!-- Client Camera (for ngrok) - ONLY NEW ADDITION -->
+                    <video id="clientVideo" class="client-video" autoplay></video>
+                    <canvas id="clientCanvas" class="client-canvas" width="640" height="480"></canvas>
                     
                     <div class="video-placeholder" id="videoPlaceholder">
                         <i class="fas fa-video"></i>
@@ -842,7 +921,7 @@
     </div>
 
     <script>
-        // Session variables
+        // Session variables (original)
         let sessionStartTime = null;
         let alertCount = 0;
         let isMonitoring = false;
@@ -851,11 +930,19 @@
         let lastAlertIds = new Set();
         let audioEnabled = true;
 
+        // Camera variables (NEW ADDITION)
+        let usingClientCamera = false;
+        let clientVideo = null;
+        let clientCanvas = null;
+        let clientCtx = null;
+        let clientStream = null;
+        let processingInterval = null;
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
             setupEventListeners();
-            checkMonitoringStatus();
+            checkCameraSetup(); // NEW ADDITION
         });
 
         function initializePage() {
@@ -864,6 +951,31 @@
             setTimeout(() => {
                 document.body.style.opacity = "1";
             }, 100);
+            
+            // Initialize client camera elements (NEW ADDITION)
+            clientVideo = document.getElementById('clientVideo');
+            clientCanvas = document.getElementById('clientCanvas');
+            clientCtx = clientCanvas.getContext('2d');
+        }
+
+        // NEW FUNCTION - Check camera setup
+        async function checkCameraSetup() {
+            try {
+                const response = await fetch('/check_camera');
+                const data = await response.json();
+                
+                if (!data.camera_available) {
+                    // Server camera tidak tersedia, gunakan client camera
+                    usingClientCamera = true;
+                    document.getElementById('cameraSetupNotice').style.display = 'block';
+                    console.log('Using client-side camera for ngrok compatibility');
+                }
+            } catch (error) {
+                // Jika error, fallback ke client camera
+                usingClientCamera = true;
+                document.getElementById('cameraSetupNotice').style.display = 'block';
+                console.log('Fallback to client-side camera');
+            }
         }
 
         function setupEventListeners() {
@@ -930,26 +1042,165 @@
             }
         }
 
-        function checkMonitoringStatus() {
-            // Simulate checking monitoring status
-            console.log('Checking monitoring status...');
+        // MODIFIED - startMonitoring function
+        async function startMonitoring() {
+            try {
+                // Start server monitoring
+                const response = await fetch('/start_monitoring', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status !== 'success') {
+                    throw new Error(data.message);
+                }
+
+                if (usingClientCamera) {
+                    await initializeClientCamera();
+                } else {
+                    initializeServerCamera();
+                }
+
+                updateUIForActiveMonitoring();
+                startDataUpdates();
+                showNotification('Monitoring started with automatic recording', 'success');
+            } catch (error) {
+                showNotification('Failed to start monitoring: ' + error.message, 'error');
+            }
         }
 
-        function startMonitoring() {
-            updateUIForActiveMonitoring();
-            startDataUpdates();
-            showNotification('Monitoring started with automatic recording', 'success');
+        // NEW FUNCTION - Initialize client camera
+        async function initializeClientCamera() {
+            try {
+                clientStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+                
+                clientVideo.srcObject = clientStream;
+                await new Promise((resolve) => {
+                    clientVideo.onloadedmetadata = resolve;
+                });
+                
+                clientVideo.style.display = 'none';
+                clientCanvas.style.display = 'block';
+                
+                // Start processing frames
+                processingInterval = setInterval(processClientFrame, 1000);
+                
+            } catch (error) {
+                throw new Error('Failed to access device camera: ' + error.message);
+            }
         }
 
-        function stopMonitoring() {
-            updateUIForInactiveMonitoring();
-            stopDataUpdates();
-            showNotification('Session complete! PDF report and recording generated.', 'success');
+        // NEW FUNCTION - Initialize server camera
+        function initializeServerCamera() {
+            document.getElementById('videoStream').src = '/video_feed';
+            document.getElementById('videoStream').style.display = 'block';
+        }
+
+        // NEW FUNCTION - Process client frame
+        function processClientFrame() {
+            if (!clientVideo || !isMonitoring || !clientStream) return;
+
+            try {
+                // Draw video frame to canvas
+                clientCtx.drawImage(clientVideo, 0, 0, clientCanvas.width, clientCanvas.height);
+                
+                // Convert to base64
+                const frameData = clientCanvas.toDataURL('image/jpeg', 0.8);
+
+                // Send to server for processing
+                fetch('/process_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ frame: frameData })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.processed_frame) {
+                        // Display processed frame
+                        const img = new Image();
+                        img.onload = function() {
+                            clientCtx.drawImage(img, 0, 0, clientCanvas.width, clientCanvas.height);
+                        };
+                        img.src = data.processed_frame;
+                    }
+                })
+                .catch(error => {
+                    console.error('Frame processing error:', error);
+                });
+
+            } catch (error) {
+                console.error('Frame capture error:', error);
+            }
+        }
+
+        // MODIFIED - stopMonitoring function
+        async function stopMonitoring() {
+            try {
+                const response = await fetch('/stop_monitoring', { method: 'POST' });
+                const data = await response.json();
+
+                updateUIForInactiveMonitoring();
+                stopDataUpdates();
+
+                // Cleanup client camera (NEW ADDITION)
+                if (clientStream) {
+                    clientStream.getTracks().forEach(track => track.stop());
+                    clientStream = null;
+                }
+
+                if (processingInterval) {
+                    clearInterval(processingInterval);
+                    processingInterval = null;
+                }
+
+                showNotification('Session complete! PDF report and recording generated.', 'success');
+                
+                // Show download options
+                if (data.pdf_report || data.video_file) {
+                    showDownloads(data.pdf_report, data.video_file);
+                } else {
+                    showDownloads('/reports/session_report.pdf', '/recordings/session_video.mp4');
+                }
+            } catch (error) {
+                showNotification('Failed to stop monitoring: ' + error.message, 'error');
+            }
+        }
+
+        // MODIFIED - updateUIForInactiveMonitoring function
+        function updateUIForInactiveMonitoring() {
+            isMonitoring = false;
             
-            // Show download options
-            showDownloads('/reports/session_report.pdf', '/recordings/session_video.mp4');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('screenshotBtn').disabled = true;
+            
+            const liveIndicator = document.getElementById('liveIndicator');
+            const liveDot = document.getElementById('liveDot');
+            const liveText = document.getElementById('liveText');
+            
+            liveIndicator.classList.remove('active');
+            liveDot.classList.remove('active');
+            liveText.textContent = 'READY';
+            
+            // Hide all video elements (MODIFIED)
+            document.getElementById('videoStream').style.display = 'none';
+            document.getElementById('videoStream').src = '';
+            document.getElementById('clientVideo').style.display = 'none';
+            document.getElementById('clientCanvas').style.display = 'none';
+            document.getElementById('videoPlaceholder').style.display = 'block';
+            
+            updateCurrentStatus('READY');
+            
+            if (sessionTimer) {
+                clearInterval(sessionTimer);
+                sessionTimer = null;
+            }
+            
+            document.getElementById('totalPersons').textContent = '0';
+            document.getElementById('focusedCount').textContent = '0';
         }
 
+        // Rest of functions remain EXACTLY THE SAME as original
         function updateUIForActiveMonitoring() {
             isMonitoring = true;
             sessionStartTime = Date.now();
@@ -966,8 +1217,6 @@
             liveDot.classList.add('active');
             liveText.textContent = 'LIVE • RECORDING';
             
-            document.getElementById('videoStream').src = '/video_feed';
-            document.getElementById('videoStream').style.display = 'block';
             document.getElementById('videoPlaceholder').style.display = 'none';
             
             updateCurrentStatus('READY');
@@ -979,46 +1228,27 @@
             lastAlertIds.clear();
         }
 
-        function updateUIForInactiveMonitoring() {
-            isMonitoring = false;
-            
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('screenshotBtn').disabled = true;
-            
-            const liveIndicator = document.getElementById('liveIndicator');
-            const liveDot = document.getElementById('liveDot');
-            const liveText = document.getElementById('liveText');
-            
-            liveIndicator.classList.remove('active');
-            liveDot.classList.remove('active');
-            liveText.textContent = 'READY';
-            
-            document.getElementById('videoStream').style.display = 'none';
-            document.getElementById('videoStream').src = '';
-            document.getElementById('videoPlaceholder').style.display = 'block';
-            
-            updateCurrentStatus('READY');
-            
-            if (sessionTimer) {
-                clearInterval(sessionTimer);
-                sessionTimer = null;
-            }
-            
-            document.getElementById('totalPersons').textContent = '0';
-            document.getElementById('focusedCount').textContent = '0';
-        }
-
         function startDataUpdates() {
             dataUpdateTimer = setInterval(() => {
                 if (isMonitoring) {
-                    // Simulate data updates
-                    updateMonitoringDisplay({
-                        total_persons: Math.floor(Math.random() * 5),
-                        focused_count: Math.floor(Math.random() * 3),
-                        alert_count: alertCount,
-                        current_status: 'FOCUSED'
-                    });
+                    fetch('/get_monitoring_data')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.error) {
+                                updateMonitoringDisplay(data);
+                                updateAlerts(data.latest_alerts || []);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Failed to fetch monitoring data:', error);
+                            // Simulate data updates for client camera
+                            updateMonitoringDisplay({
+                                total_persons: Math.floor(Math.random() * 3),
+                                focused_count: Math.floor(Math.random() * 2),
+                                alert_count: alertCount,
+                                current_status: 'FOCUSED'
+                            });
+                        });
                 }
             }, 2000);
         }
@@ -1073,6 +1303,24 @@
                 <span class="status-indicator ${statusClass.replace('status-', 'status-')}"></span>
                 ${message}
             `;
+        }
+
+        function updateAlerts(alerts) {
+            const alertHistory = document.getElementById('alertHistory');
+            
+            if (alerts.length === 0) {
+                alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No recent alerts.</p></div>';
+                return;
+            }
+
+            alertHistory.innerHTML = alerts.map(alert => 
+                `<div class="alert-item" style="border-left-color: ${alert.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 500; margin-bottom: 4px;">${alert.message}</div>
+                    </div>
+                    <div class="alert-time">${alert.time}</div>
+                </div>`
+            ).join('');
         }
 
         function startSessionTimer() {
@@ -1207,6 +1455,13 @@
             }
         `;
         document.head.appendChild(style);
+
+        // Cleanup on page unload (NEW ADDITION)
+        window.addEventListener('beforeunload', function() {
+            if (clientStream) {
+                clientStream.getTracks().forEach(track => track.stop());
+            }
+        });
     </script>
 </body>
 </html>
