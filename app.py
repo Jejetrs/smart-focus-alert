@@ -60,22 +60,67 @@ session_data = {
 video_writer = None
 recording_active = False
 
-# Add static file serving routes for all folders
+# Add static file serving routes for all folders - FIXED with proper MIME types
 @application.route('/static/uploads/<filename>')
 def serve_uploaded_file(filename):
-    return send_from_directory(application.config['UPLOAD_FOLDER'], filename)
+    try:
+        return send_from_directory(application.config['UPLOAD_FOLDER'], filename)
+    except FileNotFoundError:
+        return "File not found", 404
 
 @application.route('/static/detected/<filename>')
 def serve_detected_file(filename):
-    return send_from_directory(application.config['DETECTED_FOLDER'], filename)
+    try:
+        return send_from_directory(application.config['DETECTED_FOLDER'], filename)
+    except FileNotFoundError:
+        return "File not found", 404
 
 @application.route('/static/reports/<filename>')
 def serve_reports_file(filename):
-    return send_from_directory(application.config['REPORTS_FOLDER'], filename)
+    try:
+        response = send_from_directory(application.config['REPORTS_FOLDER'], filename)
+        if filename.endswith('.pdf'):
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except FileNotFoundError:
+        return "File not found", 404
 
 @application.route('/static/recordings/<filename>')
 def serve_recordings_file(filename):
-    return send_from_directory(application.config['RECORDINGS_FOLDER'], filename)
+    try:
+        response = send_from_directory(application.config['RECORDINGS_FOLDER'], filename)
+        if filename.endswith('.mp4'):
+            response.headers['Content-Type'] = 'video/mp4'
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except FileNotFoundError:
+        return "File not found", 404
+
+# Add direct download routes for better file handling
+@application.route('/download/report/<filename>')
+def download_report(filename):
+    try:
+        file_path = os.path.join(application.config['REPORTS_FOLDER'], filename)
+        if os.path.exists(file_path):
+            return send_file(file_path, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        else:
+            return "Report not found", 404
+    except Exception as e:
+        print(f"Error downloading report: {e}")
+        return "Error downloading report", 500
+
+@application.route('/download/recording/<filename>')
+def download_recording(filename):
+    try:
+        file_path = os.path.join(application.config['RECORDINGS_FOLDER'], filename)
+        if os.path.exists(file_path):
+            return send_file(file_path, as_attachment=True, download_name=filename, mimetype='video/mp4')
+        else:
+            return "Recording not found", 404
+    except Exception as e:
+        print(f"Error downloading recording: {e}")
+        return "Error downloading recording", 500
 
 def draw_landmarks(image, landmarks, land_mark, color):
     """Draw landmarks on the image for a single face"""
@@ -650,44 +695,57 @@ def generate_pdf_report(session_data, output_path):
     story.append(focus_table)
     story.append(Spacer(1, 30))
     
-    # Alert History
+    # Alert History - FIXED: Include all session alerts with proper formatting
     if session_data['alerts']:
         story.append(Paragraph("Alert History", heading_style))
         
         alert_headers = ['Time', 'Person', 'Detection', 'Duration', 'Message']
         alert_data = [alert_headers]
         
-        for alert in session_data['alerts'][-10:]:  # Show last 10 alerts
+        # Show ALL alerts, not just last 10
+        for alert in session_data['alerts']:
             try:
-                alert_time = datetime.fromisoformat(alert['timestamp']).strftime('%I:%M:%S %p')
+                alert_time = datetime.fromisoformat(alert['timestamp']).strftime('%H:%M:%S')
             except:
-                alert_time = alert['timestamp']
+                alert_time = str(alert['timestamp'])
             
             duration = alert.get('duration', 0)
             duration_text = f"{duration}s" if duration > 0 else "N/A"
             
             alert_data.append([
                 alert_time,
-                alert['person'],
-                alert['detection'],
+                str(alert.get('person', 'Unknown')),
+                str(alert.get('detection', 'Unknown')),
                 duration_text,
-                alert['message']
+                str(alert.get('message', 'No message'))[:50] + "..." if len(str(alert.get('message', ''))) > 50 else str(alert.get('message', 'No message'))
             ])
         
-        alert_table = Table(alert_data, colWidths=[1*inch, 0.8*inch, 1*inch, 0.7*inch, 2.5*inch])
-        alert_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB')),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')])
-        ]))
-        
-        story.append(alert_table)
+        # Create table with proper column widths
+        if len(alert_data) > 1:  # Only create table if there are alerts
+            alert_table = Table(alert_data, colWidths=[0.8*inch, 0.8*inch, 1.2*inch, 0.7*inch, 2.5*inch])
+            alert_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB')),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')])
+            ]))
+            
+            story.append(alert_table)
+            story.append(Spacer(1, 10))
+            
+            # Add alert summary
+            alert_summary_text = f"Total Alerts Generated: {len(session_data['alerts'])}"
+            story.append(Paragraph(alert_summary_text, styles['Normal']))
+        else:
+            story.append(Paragraph("No alerts were generated during this session.", styles['Normal']))
+    else:
+        story.append(Paragraph("Alert History", heading_style))
+        story.append(Paragraph("No alerts were generated during this session.", styles['Normal']))
     
     # Footer
     story.append(Spacer(1, 30))
@@ -1097,15 +1155,20 @@ def gen_frames():
                 color = state_colors.get(state, (0, 255, 0))
                 cv.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 
-                # FIXED: Add state label with duration display on live video
+                # FIXED: Add comprehensive state label with duration display on live video
                 state_text = f"Person {i+1}: {state}"
                 if state in DISTRACTION_THRESHOLDS and state in person_state_timers[person_key]:
                     duration = current_time - person_state_timers[person_key][state]
                     threshold = DISTRACTION_THRESHOLDS[state]
                     state_text += f" ({int(duration)}s/{int(threshold)}s)"
                 
-                # Draw state text above the bounding box
-                cv.putText(frame, state_text, (x, y - 10), cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                # Draw state text above the bounding box with better positioning
+                text_y = y - 40 if y > 40 else y + h + 25
+                cv.putText(frame, state_text, (x, text_y), cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                
+                # Add confidence score below person ID
+                confidence_text = f"Conf: {detection.score[0]*100:.1f}%"
+                cv.putText(frame, confidence_text, (x, text_y + 25), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                 
                 # Store detection for session data (only store focused states and confirmed distractions)
                 if state == 'FOCUSED' or (state in DISTRACTION_THRESHOLDS and 
@@ -1142,7 +1205,7 @@ def gen_frames():
         cv.putText(frame, f"Persons detected: {len(detected_persons)}", (10, 30), 
                    cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         
-        # FIXED: Display individual person states with timers on live video
+        # FIXED: Display comprehensive individual person states with timers on live video
         if detected_persons:
             y_offset = 60
             for person in detected_persons:
@@ -1153,12 +1216,17 @@ def gen_frames():
                     "SLEEPING": (0, 0, 255)
                 }.get(person["state"], (255, 255, 255))
                 
+                # Show current timer for distraction states
                 duration_text = ""
-                if person["duration"] > 0:
-                    duration_text = f" ({int(person['duration'])}s)"
+                if person["state"] in DISTRACTION_THRESHOLDS and person["duration"] > 0:
+                    threshold = DISTRACTION_THRESHOLDS[person["state"]]
+                    duration_text = f" ({int(person['duration'])}s/{int(threshold)}s)"
+                elif person["state"] == "FOCUSED":
+                    duration_text = " (OK)"
                 
-                cv.putText(frame, f"P{person['id']}: {person['state']}{duration_text}", 
-                          (10, y_offset), cv.FONT_HERSHEY_SIMPLEX, 0.5, state_color, 1)
+                # Display comprehensive info
+                person_info = f"P{person['id']}: {person['state']}{duration_text}"
+                cv.putText(frame, person_info, (10, y_offset), cv.FONT_HERSHEY_SIMPLEX, 0.5, state_color, 1)
                 y_offset += 25
         
         # Record frame if recording is active
@@ -1218,8 +1286,10 @@ def upload():
                 result["detections"] = detections
                 result["type"] = "image"
                 
-                # Generate PDF report
-                pdf_filename = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                # Generate PDF report with proper download URL
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = uuid.uuid4().hex[:8]
+                pdf_filename = f"report_{filename}_{timestamp}_{unique_id}.pdf"
                 pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
                 
                 file_info = {
@@ -1227,8 +1297,22 @@ def upload():
                     'type': file_ext.upper()
                 }
                 
-                generate_upload_pdf_report(detections, file_info, pdf_path)
-                result["pdf_report"] = f"/static/reports/{pdf_filename}"
+                try:
+                    # Ensure directory exists
+                    os.makedirs(application.config['REPORTS_FOLDER'], exist_ok=True)
+                    
+                    generate_upload_pdf_report(detections, file_info, pdf_path)
+                    
+                    # Verify PDF was created
+                    if os.path.exists(pdf_path):
+                        result["pdf_report"] = f"/download/report/{pdf_filename}"
+                    else:
+                        print(f"PDF report not created at: {pdf_path}")
+                        result["pdf_report"] = None
+                        
+                except Exception as e:
+                    print(f"Error generating PDF report: {e}")
+                    result["pdf_report"] = None
                 
             elif file_ext in ['mp4', 'avi', 'mov', 'mkv']:
                 # Process video
@@ -1238,8 +1322,10 @@ def upload():
                 result["detections"] = detections
                 result["type"] = "video"
                 
-                # Generate PDF report
-                pdf_filename = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                # Generate PDF report with proper download URL
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = uuid.uuid4().hex[:8]
+                pdf_filename = f"report_{filename}_{timestamp}_{unique_id}.pdf"
                 pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
                 
                 file_info = {
@@ -1247,8 +1333,22 @@ def upload():
                     'type': file_ext.upper()
                 }
                 
-                generate_upload_pdf_report(detections, file_info, pdf_path)
-                result["pdf_report"] = f"/static/reports/{pdf_filename}"
+                try:
+                    # Ensure directory exists
+                    os.makedirs(application.config['REPORTS_FOLDER'], exist_ok=True)
+                    
+                    generate_upload_pdf_report(detections, file_info, pdf_path)
+                    
+                    # Verify PDF was created
+                    if os.path.exists(pdf_path):
+                        result["pdf_report"] = f"/download/report/{pdf_filename}"
+                    else:
+                        print(f"PDF report not created at: {pdf_path}")
+                        result["pdf_report"] = None
+                        
+                except Exception as e:
+                    print(f"Error generating PDF report: {e}")
+                    result["pdf_report"] = None
             
             return render_template('result.html', result=result)
     
@@ -1306,19 +1406,65 @@ def stop_monitoring():
         video_writer.release()
         video_writer = None
     
-    # Generate PDF report
-    pdf_filename = f"session_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    # Generate PDF report with unique filename to avoid .htm issue
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_id = uuid.uuid4().hex[:8]
+    pdf_filename = f"session_report_{timestamp}_{unique_id}.pdf"
     pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
-    generate_pdf_report(session_data, pdf_path)
+    
+    try:
+        # Ensure the directory exists
+        os.makedirs(application.config['REPORTS_FOLDER'], exist_ok=True)
+        
+        # Generate PDF report
+        generate_pdf_report(session_data, pdf_path)
+        
+        # Verify PDF was created successfully
+        if not os.path.exists(pdf_path):
+            raise Exception("PDF report was not created successfully")
+            
+        print(f"PDF report generated successfully: {pdf_path}")
+        
+        # Use download route instead of static route
+        pdf_download_url = f"/download/report/{pdf_filename}"
+        
+    except Exception as e:
+        print(f"Error generating PDF report: {e}")
+        # Create a fallback simple report
+        pdf_filename = f"session_report_fallback_{timestamp}_{unique_id}.pdf"
+        pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
+        
+        try:
+            # Create a simple fallback PDF
+            doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            story.append(Paragraph("Smart Focus Alert - Session Report", styles['Title']))
+            story.append(Spacer(1, 20))
+            story.append(Paragraph(f"Session completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+            story.append(Paragraph(f"Total alerts: {len(session_data['alerts'])}", styles['Normal']))
+            
+            doc.build(story)
+            pdf_download_url = f"/download/report/{pdf_filename}"
+            
+        except Exception as e2:
+            print(f"Error creating fallback PDF: {e2}")
+            pdf_download_url = None
     
     response_data = {
         "status": "success", 
         "message": "Monitoring stopped",
-        "pdf_report": f"/static/reports/{pdf_filename}"
     }
     
-    if session_data['recording_path']:
-        response_data["video_file"] = f"/static/recordings/{os.path.basename(session_data['recording_path'])}"
+    # Add PDF report URL if successfully created
+    if pdf_download_url:
+        response_data["pdf_report"] = pdf_download_url
+    
+    # Add video recording URL if available
+    if session_data.get('recording_path') and os.path.exists(session_data['recording_path']):
+        recording_filename = os.path.basename(session_data['recording_path'])
+        response_data["video_file"] = f"/download/recording/{recording_filename}"
     
     return jsonify(response_data)
 
