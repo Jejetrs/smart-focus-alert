@@ -24,17 +24,18 @@ from io import BytesIO
 import base64
 
 application = Flask(__name__)
-application.config['UPLOAD_FOLDER'] = os.path.join(os.path.realpath('.'), 'static', 'uploads')
-application.config['DETECTED_FOLDER'] = os.path.join(os.path.realpath('.'), 'static', 'detected')
-application.config['REPORTS_FOLDER'] = os.path.join(os.path.realpath('.'), 'static', 'reports')
-application.config['RECORDINGS_FOLDER'] = os.path.join(os.path.realpath('.'), 'static', 'recordings')
+
+application.config['UPLOAD_FOLDER'] = '/tmp/uploads'
+application.config['DETECTED_FOLDER'] = '/tmp/detected'
+application.config['REPORTS_FOLDER'] = '/tmp/reports'
+application.config['RECORDINGS_FOLDER'] = '/tmp/recordings'
 application.config['MAX_CONTENT_PATH'] = 10000000
 
-# Create necessary directories
 for folder in [application.config['UPLOAD_FOLDER'], application.config['DETECTED_FOLDER'], 
                application.config['REPORTS_FOLDER'], application.config['RECORDINGS_FOLDER']]:
     if not os.path.exists(folder):
-        os.makedirs(folder)
+        os.makedirs(folder, exist_ok=True)
+        os.chmod(folder, 0o755)
 
 # Global variables for live monitoring
 live_monitoring_active = False
