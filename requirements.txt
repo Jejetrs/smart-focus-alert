@@ -1,8 +1,11 @@
-mediapipe==0.10.5
-opencv_contrib_python==4.7.0.72
-opencv_python==4.7.0.72
+Flask==2.3.3
+mediapipe==0.10.7
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
 pyttsx3==2.90
-scipy==1.10.1
-Flask==2.3.2
+scipy==1.11.4
 reportlab==4.0.4
-gunicorn
+matplotlib==3.7.2
+werkzeug==2.3.7
+Pillow==10.0.1
+gunicorn==21.2.0
