@@ -633,6 +633,72 @@
             color: var(--primary-blue);
         }
 
+        /* Enhanced Detection Display */
+        .detection-info {
+            background: var(--dark-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+            border-left: 4px solid var(--info);
+        }
+
+        .detection-item.focused {
+            border-left-color: var(--success);
+        }
+
+        .detection-item.unfocused {
+            border-left-color: var(--warning);
+        }
+
+        .detection-item.yawning {
+            border-left-color: #eab308;
+        }
+
+        .detection-item.sleeping {
+            border-left-color: var(--danger);
+        }
+
+        .detection-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detection-person {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .detection-status {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .detection-confidence {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .detection-timer {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .detection-timer.focused { color: var(--success); }
+        .detection-timer.unfocused { color: var(--warning); }
+        .detection-timer.yawning { color: #eab308; }
+        .detection-timer.sleeping { color: var(--danger); }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -846,6 +912,21 @@
                     </div>
                 </div>
 
+                <!-- Enhanced Detection Display -->
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <i class="fas fa-users"></i>
+                        Live Detection Details
+                    </div>
+                    
+                    <div class="detection-info" id="detectionInfo">
+                        <div class="text-center" style="color: var(--text-secondary); padding: 20px;">
+                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                            <p>No active detections - start monitoring to see live details</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="sidebar-card">
                     <div class="sidebar-header">
                         <i class="fas fa-list"></i>
@@ -912,6 +993,7 @@
 
         let audioContext = null;
         let alertAudio = null;
+        let currentDetections = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
@@ -1088,6 +1170,7 @@
                 personStates = {};
                 personTimers = {};
                 alertCount = 0;
+                currentDetections = [];
 
                 const response = await fetch('/start_monitoring', { method: 'POST' });
                 const data = await response.json();
@@ -1160,6 +1243,10 @@
 
                         if (data.detections && data.detections.length > 0) {
                             processDetectionAlerts(data.detections);
+                        } else {
+                            // Clear current detections if no persons detected
+                            currentDetections = [];
+                            updateDetectionDisplay();
                         }
                     }
                 })
@@ -1174,6 +1261,7 @@
 
         function processDetectionAlerts(detections) {
             const currentTime = Date.now();
+            currentDetections = detections;
 
             detections.forEach(detection => {
                 const personId = `person_${detection.id}`;
@@ -1205,6 +1293,44 @@
             });
 
             updateUIWithDetections(detections);
+            updateDetectionDisplay();
+        }
+
+        function updateDetectionDisplay() {
+            const detectionInfo = document.getElementById('detectionInfo');
+            
+            if (currentDetections.length === 0) {
+                detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No persons detected in frame</p></div>';
+                return;
+            }
+
+            const detectionHTML = currentDetections.map(detection => {
+                const personId = `person_${detection.id}`;
+                const currentState = detection.status;
+                const stateClass = currentState.toLowerCase().replace(' ', '-');
+                
+                let timerDisplay = '';
+                if (alertThresholds[currentState] && personTimers[personId] && personTimers[personId][currentState]) {
+                    const duration = Math.floor((Date.now() - personTimers[personId][currentState]) / 1000);
+                    const threshold = Math.floor(alertThresholds[currentState] / 1000);
+                    timerDisplay = `${duration}s / ${threshold}s`;
+                } else if (currentState === 'FOCUSED') {
+                    timerDisplay = 'OK';
+                }
+
+                return `
+                    <div class="detection-item ${stateClass}">
+                        <div class="detection-details">
+                            <div class="detection-person">Person ${detection.id}</div>
+                            <div class="detection-status">${currentState}</div>
+                            <div class="detection-confidence">Confidence: ${(detection.confidence * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="detection-timer ${stateClass}">${timerDisplay}</div>
+                    </div>
+                `;
+            }).join('');
+
+            detectionInfo.innerHTML = detectionHTML;
         }
 
         function triggerClientAlert(personId, alertType, duration) {
@@ -1235,379 +1361,3 @@
             setTimeout(() => {
                 speakAlertMessage(alertMessage);
             }, 500);
-
-            updateClientAlertHistory();
-
-            showNotification(alertMessage, alert.type);
-
-            console.log('Alert triggered:', alert);
-        }
-
-        function getAlertMessage(personId, alertType) {
-            const messages = {
-                'SLEEPING': `Person ${personId} is sleeping - please wake up!`,
-                'YAWNING': `Person ${personId} is yawning - please take a rest!`,
-                'NOT FOCUSED': `Person ${personId} is not focused - please focus on screen!`
-            };
-            return messages[alertType] || `Person ${personId} attention alert`;
-        }
-
-        function updateUIWithDetections(detections) {
-            document.getElementById('totalPersons').textContent = detections.length;
-            
-            const focusedCount = detections.filter(d => d.status === 'FOCUSED').length;
-            document.getElementById('focusedCount').textContent = focusedCount;
-
-            let overallStatus = 'FOCUSED';
-            if (detections.some(d => d.status === 'SLEEPING')) {
-                overallStatus = 'SLEEPING';
-            } else if (detections.some(d => d.status === 'YAWNING')) {
-                overallStatus = 'YAWNING';
-            } else if (detections.some(d => d.status === 'NOT FOCUSED')) {
-                overallStatus = 'NOT FOCUSED';
-            }
-
-            updateCurrentStatus(overallStatus);
-        }
-
-        function updateClientAlertHistory() {
-            const alertHistory = document.getElementById('alertHistory');
-            
-            if (clientAlerts.length === 0) {
-                alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No alerts yet in this session.</p></div>';
-                return;
-            }
-
-            alertHistory.innerHTML = clientAlerts.slice(0, 10).map(alert => 
-                `<div class="alert-item" style="border-left-color: ${alert.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 500; margin-bottom: 4px;">${alert.message}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">Duration: ${alert.duration}s</div>
-                    </div>
-                    <div class="alert-time">${alert.time}</div>
-                </div>`
-            ).join('');
-        }
-
-        async function stopMonitoring() {
-            try {
-                const response = await fetch('/stop_monitoring', { method: 'POST' });
-                const data = await response.json();
-
-                updateUIForInactiveMonitoring();
-                stopDataUpdates();
-
-                if (clientStream) {
-                    clientStream.getTracks().forEach(track => track.stop());
-                    clientStream = null;
-                }
-
-                if (processingInterval) {
-                    clearInterval(processingInterval);
-                    processingInterval = null;
-                }
-
-                personStates = {};
-                personTimers = {};
-
-                showNotification(`Session complete! Generated ${alertCount} alerts. PDF report and recording available.`, 'success');
-                
-                if (data.pdf_report || data.video_file) {
-                    showDownloads(data.pdf_report, data.video_file);
-                } else {
-                    showDownloads('/reports/session_report.pdf', '/recordings/session_video.mp4');
-                }
-            } catch (error) {
-                showNotification('Failed to stop monitoring: ' + error.message, 'error');
-            }
-        }
-
-        function updateUIForInactiveMonitoring() {
-            isMonitoring = false;
-            
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('screenshotBtn').disabled = true;
-            
-            const liveIndicator = document.getElementById('liveIndicator');
-            const liveDot = document.getElementById('liveDot');
-            const liveText = document.getElementById('liveText');
-            
-            liveIndicator.classList.remove('active');
-            liveDot.classList.remove('active');
-            liveText.textContent = 'READY';
-            
-            document.getElementById('videoStream').style.display = 'none';
-            document.getElementById('videoStream').src = '';
-            document.getElementById('clientVideo').style.display = 'none';
-            document.getElementById('clientCanvas').style.display = 'none';
-            document.getElementById('videoPlaceholder').style.display = 'block';
-            
-            updateCurrentStatus('READY');
-            
-            if (sessionTimer) {
-                clearInterval(sessionTimer);
-                sessionTimer = null;
-            }
-            
-            document.getElementById('totalPersons').textContent = '0';
-            document.getElementById('focusedCount').textContent = '0';
-        }
-
-        function updateUIForActiveMonitoring() {
-            isMonitoring = true;
-            sessionStartTime = Date.now();
-            
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('screenshotBtn').disabled = false;
-            
-            const liveIndicator = document.getElementById('liveIndicator');
-            const liveDot = document.getElementById('liveDot');
-            const liveText = document.getElementById('liveText');
-            
-            liveIndicator.classList.add('active');
-            liveDot.classList.add('active');
-            liveText.textContent = 'LIVE • RECORDING';
-            
-            document.getElementById('videoPlaceholder').style.display = 'none';
-            
-            updateCurrentStatus('READY');
-            startSessionTimer();
-            
-            const alertHistory = document.getElementById('alertHistory');
-            alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Monitoring started - watching for alerts...</p></div>';
-            
-            lastAlertIds.clear();
-        }
-
-        function startDataUpdates() {
-            dataUpdateTimer = setInterval(() => {
-                if (isMonitoring && !usingClientCamera) {
-                    fetch('/get_monitoring_data')
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.error) {
-                                updateMonitoringDisplay(data);
-                                updateAlerts(data.latest_alerts || []);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Failed to fetch monitoring data:', error);
-                        });
-                }
-            }, 2000);
-        }
-
-        function stopDataUpdates() {
-            if (dataUpdateTimer) {
-                clearInterval(dataUpdateTimer);
-                dataUpdateTimer = null;
-            }
-        }
-
-        function updateMonitoringDisplay(data) {
-            document.getElementById('totalPersons').textContent = data.total_persons || 0;
-            document.getElementById('focusedCount').textContent = data.focused_count || 0;
-            document.getElementById('alertCount').textContent = data.alert_count || 0;
-            
-            const currentStatus = data.current_status || 'READY';
-            updateCurrentStatus(currentStatus);
-        }
-
-        function updateCurrentStatus(status) {
-            const statusElement = document.getElementById('currentStatus');
-            const statusClasses = ['status-ready', 'status-focused', 'status-unfocused', 'status-yawning', 'status-sleeping'];
-            
-            statusClasses.forEach(cls => statusElement.classList.remove(cls));
-            
-            let statusClass, message;
-            switch(status) {
-                case 'FOCUSED':
-                    statusClass = 'status-focused';
-                    message = 'All persons are focused - Recording active';
-                    break;
-                case 'NOT FOCUSED':
-                    statusClass = 'status-unfocused';
-                    message = 'Some persons are not focused - Recording active';
-                    break;
-                case 'YAWNING':
-                    statusClass = 'status-yawning';
-                    message = 'Yawning detected - fatigue signs - Recording active';
-                    break;
-                case 'SLEEPING':
-                    statusClass = 'status-sleeping';
-                    message = 'Sleep detected - eyes closed - Recording active';
-                    break;
-                default:
-                    statusClass = 'status-ready';
-                    message = 'Monitoring active - detecting faces - Recording in progress';
-            }
-            
-            statusElement.classList.add(statusClass);
-            statusElement.innerHTML = `
-                <span class="status-indicator ${statusClass.replace('status-', 'status-')}"></span>
-                ${message}
-            `;
-        }
-
-        function updateAlerts(alerts) {
-            if (usingClientCamera) return;
-            
-            const alertHistory = document.getElementById('alertHistory');
-            
-            if (alerts.length === 0) {
-                alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No recent alerts.</p></div>';
-                return;
-            }
-
-            alertHistory.innerHTML = alerts.map(alert => 
-                `<div class="alert-item" style="border-left-color: ${alert.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 500; margin-bottom: 4px;">${alert.message}</div>
-                    </div>
-                    <div class="alert-time">${alert.time}</div>
-                </div>`
-            ).join('');
-        }
-
-        function startSessionTimer() {
-            sessionTimer = setInterval(() => {
-                if (sessionStartTime && isMonitoring) {
-                    const elapsed = Date.now() - sessionStartTime;
-                    const hours = Math.floor(elapsed / 3600000);
-                    const minutes = Math.floor((elapsed % 3600000) / 60000);
-                    const seconds = Math.floor((elapsed % 60000) / 1000);
-                    document.getElementById('sessionTime').textContent = 
-                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }
-            }, 1000);
-        }
-
-        function showDownloads(pdfReport, videoFile) {
-            const downloadsSection = document.getElementById('downloadsSection');
-            const downloadItems = document.getElementById('downloadItems');
-            
-            downloadItems.innerHTML = '';
-            
-            if (pdfReport) {
-                const pdfItem = document.createElement('div');
-                pdfItem.className = 'download-item';
-                pdfItem.innerHTML = `
-                    <div class="download-info">
-                        <div class="file-icon">
-                            <i class="fas fa-file-pdf"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight: 600;">Session Report</div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">PDF with ${alertCount} alerts tracked</div>
-                        </div>
-                    </div>
-                    <a href="${pdfReport}" download class="btn btn-primary">
-                        <i class="fas fa-download"></i>
-                    </a>
-                `;
-                downloadItems.appendChild(pdfItem);
-            }
-            
-            if (videoFile) {
-                const videoItem = document.createElement('div');
-                videoItem.className = 'download-item';
-                videoItem.innerHTML = `
-                    <div class="download-info">
-                        <div class="file-icon">
-                            <i class="fas fa-video"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight: 600;">Session Recording</div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Full HD video with overlays</div>
-                        </div>
-                    </div>
-                    <a href="${videoFile}" download class="btn btn-secondary">
-                        <i class="fas fa-download"></i>
-                    </a>
-                `;
-                downloadItems.appendChild(videoItem);
-            }
-            
-            downloadsSection.style.display = 'block';
-        }
-
-        function takeScreenshot() {
-            showNotification('Screenshot captured successfully', 'success');
-        }
-
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: var(--glass-bg);
-                border: 1px solid var(--glass-border);
-                border-radius: 8px;
-                padding: 16px;
-                color: var(--text-primary);
-                z-index: 1000;
-                max-width: 300px;
-                animation: slideInRight 0.3s ease-out;
-                backdrop-filter: blur(10px);
-            `;
-            
-            const colors = {
-                success: 'var(--success)',
-                warning: 'var(--warning)',
-                error: 'var(--danger)',
-                info: 'var(--info)'
-            };
-            
-            const icons = {
-                success: 'fa-check-circle',
-                warning: 'fa-exclamation-triangle',
-                error: 'fa-times-circle',
-                info: 'fa-info-circle'
-            };
-            
-            notification.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fas ${icons[type] || icons.info}" style="color: ${colors[type] || colors.info};"></i>
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" 
-                            style="background: none; border: none; color: var(--text-secondary); cursor: pointer; margin-left: auto;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 5000);
-        }
-
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInRight {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-
-        window.addEventListener('beforeunload', function() {
-            if (clientStream) {
-                clientStream.getTracks().forEach(track => track.stop());
-            }
-        });
-    </script>
-</body>
-</html>
