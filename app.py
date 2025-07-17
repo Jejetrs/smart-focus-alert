@@ -1,3 +1,4 @@
+# app.py contoh sebelum di deploy
 from flask import Flask, render_template, request, Response, jsonify, send_file
 from werkzeug.utils import secure_filename
 import mediapipe as mp
@@ -21,7 +22,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from io import BytesIO
 import base64
-from pyngrok import ngrok
 
 application = Flask(__name__)
 application.config['UPLOAD_FOLDER'] = os.path.join(os.path.realpath('.'), 'static', 'uploads')
@@ -1432,12 +1432,5 @@ def process_frame():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@application.route("/")
-def index():
-    return "Hello, from ngrok!"
-
 if __name__ == "__main__":
-    port = 5000
-    public_url = ngrok.connect(port)
-    print("Public URL:", public_url)
-    application.run(port=port)
+    application.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
