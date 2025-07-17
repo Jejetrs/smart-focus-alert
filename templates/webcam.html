@@ -1441,7 +1441,8 @@
                 if (data.pdf_report || data.video_file) {
                     showDownloads(data.pdf_report, data.video_file);
                 } else {
-                    showDownloads('/static/reports/session_report.pdf', '/static/recordings/session_video.mp4');
+                    // Fallback URLs using download routes
+                    showDownloads('/download/report/session_report.pdf', '/download/recording/session_video.mp4');
                 }
             } catch (error) {
                 showNotification('Failed to stop monitoring: ' + error.message, 'error');
