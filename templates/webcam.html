@@ -552,7 +552,7 @@
         .threshold-focus .threshold-label { color: var(--info); }
 
         .alert-history {
-            max-height: 250px;
+            max-height: 300px;
             overflow-y: auto;
             background: var(--dark-bg);
             border-radius: 12px;
@@ -632,72 +632,6 @@
             justify-content: center;
             color: var(--primary-blue);
         }
-
-        /* Enhanced Detection Display */
-        .detection-info {
-            background: var(--dark-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .detection-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 8px;
-            border-left: 4px solid var(--info);
-        }
-
-        .detection-item.focused {
-            border-left-color: var(--success);
-        }
-
-        .detection-item.not-focused {
-            border-left-color: var(--warning);
-        }
-
-        .detection-item.yawning {
-            border-left-color: #eab308;
-        }
-
-        .detection-item.sleeping {
-            border-left-color: var(--danger);
-        }
-
-        .detection-details {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .detection-person {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .detection-status {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .detection-confidence {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .detection-timer {
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .detection-timer.focused { color: var(--success); }
-        .detection-timer.not-focused { color: var(--warning); }
-        .detection-timer.yawning { color: #eab308; }
-        .detection-timer.sleeping { color: var(--danger); }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -796,7 +730,7 @@
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="fas fa-chart-line"></i>
-                    Monitoring Status
+                    Live Monitoring Status
                 </h2>
                 <div class="live-indicator" id="liveIndicator">
                     <div class="live-dot" id="liveDot"></div>
@@ -840,12 +774,13 @@
                     <div class="video-placeholder" id="videoPlaceholder">
                         <i class="fas fa-video"></i>
                         <h3 style="margin-bottom: 12px;">Detection Ready</h3>
-                        <p style="margin-bottom: 20px;">Click "Start Monitoring" to begin detection with time-based alerts</p>
-                        <div style="text-align: left; max-width: 400px; line-height: 1.6;">
-                            <div style="margin-bottom: 8px;">• <strong>Sleep Detection:</strong> Alert after 10 seconds</div>
-                            <div style="margin-bottom: 8px;">• <strong>Yawning Detection:</strong> Alert after 3.5 seconds</div>
-                            <div style="margin-bottom: 8px;">• <strong>Unfocus Detection:</strong> Alert after 10 seconds</div>
-                            <div>• <strong>Visual + Audio Alerts:</strong> Automatic notifications</div>
+                        <p style="margin-bottom: 20px;">Click "Start Monitoring" to begin detection with facial landmarks and time-based alerts</p>
+                        <div style="text-align: left; max-width: 500px; line-height: 1.6;">
+                            <div style="margin-bottom: 8px;">• <strong>Face Detection:</strong> Green landmarks for face outline</div>
+                            <div style="margin-bottom: 8px;">• <strong>Eye Tracking:</strong> Red landmarks for eye movement</div>
+                            <div style="margin-bottom: 8px;">• <strong>Iris Detection:</strong> Purple circles for gaze direction</div>
+                            <div style="margin-bottom: 8px;">• <strong>Mouth Detection:</strong> Blue landmarks for yawning</div>
+                            <div style="margin-bottom: 8px;">• <strong>Time-based Alerts:</strong> Sleep (10s), Yawning (3.5s), Unfocus (10s)</div>
                         </div>
                     </div>
                 </div>
@@ -896,8 +831,8 @@
                             <i class="fas fa-clock"></i>
                         </div>
                         <div class="connection-text">
-                            <div class="connection-title">Ready to Connect</div>
-                            <div class="connection-subtitle" id="connectionSubtitle">Webcam access ready</div>
+                            <div class="connection-title">Visual Parameters Active</div>
+                            <div class="connection-subtitle" id="connectionSubtitle">Facial landmarks and iris tracking enabled</div>
                         </div>
                     </div>
 
@@ -912,25 +847,29 @@
                     </div>
                 </div>
 
-                <!-- Enhanced Detection Display -->
-                <div class="sidebar-card">
-                    <div class="sidebar-header">
-                        <i class="fas fa-users"></i>
-                        Live Detection Details
-                    </div>
-                    
-                    <div class="detection-info" id="detectionInfo">
-                        <div class="text-center" style="color: var(--text-secondary); padding: 20px;">
-                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
-                            <p>No active detections - start monitoring to see live details</p>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="sidebar-card">
                     <div class="sidebar-header">
                         <i class="fas fa-list"></i>
-                        Detection Thresholds
+                        Detection Parameters
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <div style="width: 12px; height: 12px; background: #00ff00; border-radius: 50%;"></div>
+                            <span style="font-weight: 600;">Face Outline</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <div style="width: 12px; height: 12px; background: #ff0000; border-radius: 50%;"></div>
+                            <span style="font-weight: 600;">Eye Landmarks</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <div style="width: 12px; height: 12px; background: #ff00ff; border-radius: 50%;"></div>
+                            <span style="font-weight: 600;">Iris Tracking</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <div style="width: 12px; height: 12px; background: #0000ff; border-radius: 50%;"></div>
+                            <span style="font-weight: 600;">Mouth/Lips</span>
+                        </div>
                     </div>
                     
                     <div class="thresholds-grid">
@@ -952,7 +891,7 @@
                 <div class="sidebar-card">
                     <div class="sidebar-header">
                         <i class="fas fa-list"></i>
-                        Alert History
+                        Live Alert History
                     </div>
                     
                     <div class="alert-history" id="alertHistory">
@@ -993,7 +932,6 @@
 
         let audioContext = null;
         let alertAudio = null;
-        let currentDetections = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
@@ -1087,13 +1025,13 @@
                 if (!data.camera_available) {
                     usingClientCamera = true;
                     document.getElementById('cameraSetupNotice').style.display = 'block';
-                    document.getElementById('connectionSubtitle').textContent = 'Using device camera (Railway/ngrok mode)';
+                    document.getElementById('connectionSubtitle').textContent = 'Using device camera with visual parameters enabled';
                     console.log('Using client-side camera for Railway/ngrok compatibility');
                 }
             } catch (error) {
                 usingClientCamera = true;
                 document.getElementById('cameraSetupNotice').style.display = 'block';
-                document.getElementById('connectionSubtitle').textContent = 'Using device camera (fallback mode)';
+                document.getElementById('connectionSubtitle').textContent = 'Using device camera with visual parameters enabled';
                 console.log('Fallback to client-side camera');
             }
         }
@@ -1170,7 +1108,6 @@
                 personStates = {};
                 personTimers = {};
                 alertCount = 0;
-                currentDetections = [];
 
                 const response = await fetch('/start_monitoring', { method: 'POST' });
                 const data = await response.json();
@@ -1187,7 +1124,7 @@
 
                 updateUIForActiveMonitoring();
                 startDataUpdates();
-                showNotification('Monitoring started with automatic recording and alert tracking', 'success');
+                showNotification('Live monitoring started with visual parameters and automatic recording', 'success');
             } catch (error) {
                 showNotification('Failed to start monitoring: ' + error.message, 'error');
             }
@@ -1243,10 +1180,6 @@
 
                         if (data.detections && data.detections.length > 0) {
                             processDetectionAlerts(data.detections);
-                        } else {
-                            // Clear current detections if no persons detected
-                            currentDetections = [];
-                            updateDetectionDisplay();
                         }
                     }
                 })
@@ -1261,7 +1194,6 @@
 
         function processDetectionAlerts(detections) {
             const currentTime = Date.now();
-            currentDetections = detections;
 
             detections.forEach(detection => {
                 const personId = `person_${detection.id}`;
@@ -1293,44 +1225,6 @@
             });
 
             updateUIWithDetections(detections);
-            updateDetectionDisplay();
-        }
-
-        function updateDetectionDisplay() {
-            const detectionInfo = document.getElementById('detectionInfo');
-            
-            if (currentDetections.length === 0) {
-                detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No persons detected in frame</p></div>';
-                return;
-            }
-
-            const detectionHTML = currentDetections.map(detection => {
-                const personId = `person_${detection.id}`;
-                const currentState = detection.status;
-                const stateClass = currentState.toLowerCase().replace(' ', '-');
-                
-                let timerDisplay = '';
-                if (alertThresholds[currentState] && personTimers[personId] && personTimers[personId][currentState]) {
-                    const duration = Math.floor((Date.now() - personTimers[personId][currentState]) / 1000);
-                    const threshold = Math.floor(alertThresholds[currentState] / 1000);
-                    timerDisplay = `${duration}s / ${threshold}s`;
-                } else if (currentState === 'FOCUSED') {
-                    timerDisplay = 'OK';
-                }
-
-                return `
-                    <div class="detection-item ${stateClass}">
-                        <div class="detection-details">
-                            <div class="detection-person">Person ${detection.id}</div>
-                            <div class="detection-status">${currentState}</div>
-                            <div class="detection-confidence">Confidence: ${(detection.confidence * 100).toFixed(1)}%</div>
-                        </div>
-                        <div class="detection-timer ${stateClass}">${timerDisplay}</div>
-                    </div>
-                `;
-            }).join('');
-
-            detectionInfo.innerHTML = detectionHTML;
         }
 
         function triggerClientAlert(personId, alertType, duration) {
@@ -1363,7 +1257,9 @@
             }, 500);
 
             updateClientAlertHistory();
+
             showNotification(alertMessage, alert.type);
+
             console.log('Alert triggered:', alert);
         }
 
@@ -1433,16 +1329,11 @@
 
                 personStates = {};
                 personTimers = {};
-                currentDetections = [];
-                updateDetectionDisplay();
 
-                showNotification(`Session complete! Generated ${alertCount} alerts. PDF report and recording available.`, 'success');
+                showNotification(`Live session complete! Generated ${alertCount} alerts with visual parameters. PDF report and recording available.`, 'success');
                 
                 if (data.pdf_report || data.video_file) {
                     showDownloads(data.pdf_report, data.video_file);
-                } else {
-                    // Fallback URLs using download routes
-                    showDownloads('/download/report/session_report.pdf', '/download/recording/session_video.mp4');
                 }
             } catch (error) {
                 showNotification('Failed to stop monitoring: ' + error.message, 'error');
@@ -1479,10 +1370,6 @@
             
             document.getElementById('totalPersons').textContent = '0';
             document.getElementById('focusedCount').textContent = '0';
-            
-            // Reset detection display
-            const detectionInfo = document.getElementById('detectionInfo');
-            detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No active detections - start monitoring to see live details</p></div>';
         }
 
         function updateUIForActiveMonitoring() {
@@ -1507,10 +1394,7 @@
             startSessionTimer();
             
             const alertHistory = document.getElementById('alertHistory');
-            alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Monitoring started - watching for alerts...</p></div>';
-            
-            const detectionInfo = document.getElementById('detectionInfo');
-            detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Monitoring active - waiting for detections...</p></div>';
+            alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Live monitoring started with visual parameters...</p></div>';
             
             lastAlertIds.clear();
         }
@@ -1559,23 +1443,23 @@
             switch(status) {
                 case 'FOCUSED':
                     statusClass = 'status-focused';
-                    message = 'All persons are focused - Recording active';
+                    message = 'All persons are focused with visual parameters active';
                     break;
                 case 'NOT FOCUSED':
                     statusClass = 'status-unfocused';
-                    message = 'Some persons are not focused - Recording active';
+                    message = 'Some persons are not focused - iris tracking active';
                     break;
                 case 'YAWNING':
                     statusClass = 'status-yawning';
-                    message = 'Yawning detected - fatigue signs - Recording active';
+                    message = 'Yawning detected - mouth landmarks active';
                     break;
                 case 'SLEEPING':
                     statusClass = 'status-sleeping';
-                    message = 'Sleep detected - eyes closed - Recording active';
+                    message = 'Sleep detected - eye landmarks tracking closed eyes';
                     break;
                 default:
                     statusClass = 'status-ready';
-                    message = 'Monitoring active - detecting faces - Recording in progress';
+                    message = 'Live monitoring with visual parameters - detecting faces';
             }
             
             statusElement.classList.add(statusClass);
@@ -1599,6 +1483,7 @@
                 `<div class="alert-item" style="border-left-color: ${alert.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
                     <div style="flex: 1;">
                         <div style="font-weight: 500; margin-bottom: 4px;">${alert.message}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Duration: ${alert.duration || 0}s</div>
                     </div>
                     <div class="alert-time">${alert.time}</div>
                 </div>`
@@ -1633,8 +1518,8 @@
                             <i class="fas fa-file-pdf"></i>
                         </div>
                         <div>
-                            <div style="font-weight: 600;">Session Report</div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">PDF with ${alertCount} alerts tracked</div>
+                            <div style="font-weight: 600;">Live Session Report</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">PDF with ${alertCount} alerts and visual parameters</div>
                         </div>
                     </div>
                     <a href="${pdfReport}" download class="btn btn-primary">
@@ -1653,8 +1538,8 @@
                             <i class="fas fa-video"></i>
                         </div>
                         <div>
-                            <div style="font-weight: 600;">Session Recording</div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Full HD video with overlays</div>
+                            <div style="font-weight: 600;">Live Session Recording</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">HD video with facial landmarks overlay</div>
                         </div>
                     </div>
                     <a href="${videoFile}" download class="btn btn-secondary">
@@ -1668,7 +1553,7 @@
         }
 
         function takeScreenshot() {
-            showNotification('Screenshot captured successfully', 'success');
+            showNotification('Screenshot captured with visual parameters', 'success');
         }
 
         function showNotification(message, type = 'info') {
@@ -1722,7 +1607,6 @@
             }, 5000);
         }
 
-        // Add CSS animation keyframes
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideInRight {
@@ -1738,7 +1622,6 @@
         `;
         document.head.appendChild(style);
 
-        // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
             if (clientStream) {
                 clientStream.getTracks().forEach(track => track.stop());
