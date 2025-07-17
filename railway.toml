@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "always"
+
+[env]
+PORT = { default = "5000" }
+PYTHONPATH = "."
+PYTHONUNBUFFERED = "1"

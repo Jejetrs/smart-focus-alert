@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python39", "ffmpeg", "libopus"]
+
+[phases.install]
+cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["mkdir -p static/uploads static/detected static/reports static/recordings"]
+
+[start]
+cmd = "gunicorn app:application --bind 0.0.0.0:$PORT --timeout 120 --workers 1"
