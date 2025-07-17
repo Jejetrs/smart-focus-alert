@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Install essential system dependencies for OpenCV and MediaPipe
 RUN apt-get update && apt-get install -y \
+    python3-pip \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
