@@ -1,5 +1,5 @@
-# app.py contoh sebelum di deploy
-from flask import Flask, render_template, request, Response, jsonify, send_file
+# app.py - Fixed version with proper file serving and timing display
+from flask import Flask, render_template, request, Response, jsonify, send_file, send_from_directory
 from werkzeug.utils import secure_filename
 import mediapipe as mp
 import numpy as np
@@ -25,12 +25,14 @@ import base64
 
 application = Flask(__name__)
 
+# Configuration with better paths for Railway
 application.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 application.config['DETECTED_FOLDER'] = '/tmp/detected'
 application.config['REPORTS_FOLDER'] = '/tmp/reports'
 application.config['RECORDINGS_FOLDER'] = '/tmp/recordings'
 application.config['MAX_CONTENT_PATH'] = 10000000
 
+# Ensure all directories exist
 for folder in [application.config['UPLOAD_FOLDER'], application.config['DETECTED_FOLDER'], 
                application.config['REPORTS_FOLDER'], application.config['RECORDINGS_FOLDER']]:
     if not os.path.exists(folder):
@@ -57,6 +59,23 @@ session_data = {
 # Video recording variables
 video_writer = None
 recording_active = False
+
+# Add static file serving routes for all folders
+@application.route('/static/uploads/<filename>')
+def serve_uploaded_file(filename):
+    return send_from_directory(application.config['UPLOAD_FOLDER'], filename)
+
+@application.route('/static/detected/<filename>')
+def serve_detected_file(filename):
+    return send_from_directory(application.config['DETECTED_FOLDER'], filename)
+
+@application.route('/static/reports/<filename>')
+def serve_reports_file(filename):
+    return send_from_directory(application.config['REPORTS_FOLDER'], filename)
+
+@application.route('/static/recordings/<filename>')
+def serve_recordings_file(filename):
+    return send_from_directory(application.config['RECORDINGS_FOLDER'], filename)
 
 def draw_landmarks(image, landmarks, land_mark, color):
     """Draw landmarks on the image for a single face"""
@@ -297,20 +316,28 @@ def detect_persons_with_attention(image, mode="image"):
             cv.putText(image, f"Status: {status_text}", 
                     (x, info_y_start + 3*line_height), font, font_scale, color, thickness)
             
-            # Extract face region
+            # Extract face region - FIXED: Ensure face image is valid
             face_img = image[y:y+h, x:x+w]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             face_filename = f"person_{i+1}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
             face_path = os.path.join(application.config['DETECTED_FOLDER'], face_filename)
             
-            if face_img.size > 0:
-                cv.imwrite(face_path, face_img)
+            # Save face crop only if valid
+            if face_img.size > 0 and h > 0 and w > 0:
+                try:
+                    cv.imwrite(face_path, face_img)
+                    face_crop_url = f"/static/detected/{face_filename}"
+                except Exception as e:
+                    print(f"Error saving face crop: {e}")
+                    face_crop_url = None
+            else:
+                face_crop_url = None
             
             detections.append({
                 "id": i+1,
                 "confidence": float(confidence_score),
                 "bbox": [x, y, w, h],
-                "image_path": f"/static/detected/{face_filename}",
+                "image_path": face_crop_url,  # This will be used in result display
                 "status": status_text,
                 "timestamp": datetime.now().isoformat()
             })
@@ -1070,13 +1097,14 @@ def gen_frames():
                 color = state_colors.get(state, (0, 255, 0))
                 cv.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 
-                # Add state label with duration if in distraction
+                # FIXED: Add state label with duration display on live video
                 state_text = f"Person {i+1}: {state}"
                 if state in DISTRACTION_THRESHOLDS and state in person_state_timers[person_key]:
                     duration = current_time - person_state_timers[person_key][state]
                     threshold = DISTRACTION_THRESHOLDS[state]
-                    state_text += f" ({int(duration)}s/{threshold}s)"
+                    state_text += f" ({int(duration)}s/{int(threshold)}s)"
                 
+                # Draw state text above the bounding box
                 cv.putText(frame, state_text, (x, y - 10), cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
                 
                 # Store detection for session data (only store focused states and confirmed distractions)
@@ -1110,10 +1138,11 @@ def gen_frames():
         if frame_detections:
             update_session_statistics(frame_detections)
         
-        # Display summary
+        # Display summary with timing information
         cv.putText(frame, f"Persons detected: {len(detected_persons)}", (10, 30), 
                    cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         
+        # FIXED: Display individual person states with timers on live video
         if detected_persons:
             y_offset = 60
             for person in detected_persons:
