@@ -1,4 +1,4 @@
-# app.py - Railway deployment dengan struktur file lokal yang optimal
+# app.py - Railway deployment dengan FIXED video recording consistency
 from flask import Flask, render_template, request, Response, jsonify, send_file, send_from_directory
 from werkzeug.utils import secure_filename
 import mediapipe as mp
@@ -48,7 +48,7 @@ for folder in [application.config['UPLOAD_FOLDER'], application.config['DETECTED
     except Exception as e:
         print(f"Error creating directory {folder}: {str(e)}")
 
-# Global variables untuk live monitoring dengan thread safety
+# FIXED: Enhanced global variables untuk consistent video recording
 monitoring_lock = threading.RLock()
 live_monitoring_active = False
 session_data = {
@@ -64,9 +64,12 @@ session_data = {
         'total_detections': 0
     },
     'recording_path': None,
-    'recording_frames': [],  # Tambah untuk Railway frame storage
+    'recording_frames': [],
     'session_id': None,
-    'client_alerts': []
+    'client_alerts': [],
+    'frame_counter': 0,  # FIXED: Added consistent frame counter
+    'frame_timestamps': [],  # FIXED: Track frame timing
+    'total_frames_processed': 0  # FIXED: Track total processing
 }
 
 # Video recording variables
@@ -84,6 +87,11 @@ DISTRACTION_THRESHOLDS = {
     'YAWNING': 3.5,
     'NOT FOCUSED': 10
 }
+
+# FIXED: Frame recording configuration
+FRAME_STORAGE_INTERVAL = 2  # Store every 2nd frame instead of 5th
+MAX_STORED_FRAMES = 200     # Increase limit for better video quality
+RECORDING_FPS = 5           # Target FPS for final video
 
 # Initialize MediaPipe dengan error handling untuk Railway
 face_detection = None
@@ -635,48 +643,81 @@ def calculate_average_focus_metric(focused_time, total_session_seconds):
         focused_per_hour = focused_minutes / hours
         return f"{focused_per_hour:.1f} min focused per hour"
 
+# FIXED: Enhanced video creation dengan consistent frame rate and duration
 def create_session_recording_from_frames(recording_frames, output_path, session_start_time, session_end_time):
+    """FIXED: Create video recording dengan proper frame timing dan duration"""
     try:
         if not recording_frames:
-            print("No frames to create video")
+            print("FIXED: No frames to create video")
             return None
 
         actual_duration = session_end_time - session_start_time
         actual_duration_seconds = actual_duration.total_seconds()
+        
         if actual_duration_seconds <= 0:
-            print("Invalid session duration")
+            print("FIXED: Invalid session duration")
             return None
 
-        fps = len(recording_frames) / actual_duration_seconds
-        fps = max(20.0, min(fps, 30.0))  # Batasi antara 1 dan 30
-        print(f"Calculated FPS: {fps:.2f} for duration {actual_duration_seconds:.2f}s")
+        # FIXED: Use consistent FPS instead of calculated
+        fps = RECORDING_FPS  # Use constant FPS for predictable results
+        print(f"FIXED: Using FPS: {fps} for duration {actual_duration_seconds:.2f}s with {len(recording_frames)} frames")
+
+        # FIXED: Calculate how many times each frame should be repeated
+        total_frames_needed = int(fps * actual_duration_seconds)
+        if total_frames_needed <= 0:
+            total_frames_needed = len(recording_frames) * 5  # Fallback
+        
+        frame_repeat_count = max(1, total_frames_needed // len(recording_frames))
+        print(f"FIXED: Target {total_frames_needed} frames, repeating each frame {frame_repeat_count} times")
 
         height, width = recording_frames[0].shape[:2]
         fourcc = cv.VideoWriter_fourcc(*'mp4v')
         out = cv.VideoWriter(output_path, fourcc, fps, (width, height))
 
         if not out.isOpened():
-            print(f"Error: Could not open video writer for {output_path}")
+            print(f"FIXED ERROR: Could not open video writer for {output_path}")
             return None
 
-        frame_delay = 3  # tampilkan frame sama 3 kali
-
-        for frame in recording_frames:
+        # FIXED: Write frames dengan proper repetition
+        frames_written = 0
+        for i, frame in enumerate(recording_frames):
             if frame is not None and frame.size > 0:
-                for _ in range(frame_delay):
+                # Write each frame multiple times untuk maintain duration
+                for repeat in range(frame_repeat_count):
                     out.write(frame)
+                    frames_written += 1
+                    
+                print(f"FIXED: Processed frame {i+1}/{len(recording_frames)}, written {frames_written} video frames")
+            else:
+                print(f"FIXED WARNING: Skipping invalid frame {i+1}")
 
         out.release()
+        
+        print(f"FIXED: Total frames written: {frames_written}")
 
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            print(f"Recording created: {output_path}")
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:  # Minimal size check
+            file_size = os.path.getsize(output_path)
+            print(f"FIXED SUCCESS: Recording created: {output_path} (size: {file_size} bytes)")
+            
+            # FIXED: Verify video duration using ffprobe if available
+            try:
+                import subprocess
+                result = subprocess.run(['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', 
+                                       '-of', 'csv=p=0', output_path], 
+                                     capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    video_duration = float(result.stdout.strip())
+                    print(f"FIXED: Verified video duration: {video_duration:.2f}s (expected: {actual_duration_seconds:.2f}s)")
+            except:
+                print("FIXED: ffprobe not available for duration verification")
+            
             return output_path
         else:
-            print("Failed to create session recording - file not created atau empty")
+            print("FIXED ERROR: Failed to create session recording - file not created atau too small")
             return None
 
     except Exception as e:
-        print(f"Error creating session recording: {str(e)}")
+        print(f"FIXED ERROR: Exception creating session recording: {str(e)}")
         traceback.print_exc()
         return None
 
@@ -772,7 +813,8 @@ def generate_pdf_report(session_data, output_path):
             ['Session Duration', duration_str],
             ['Total Detections', str(session_data['focus_statistics']['total_detections'])],
             ['Total Persons Detected', str(session_data['focus_statistics']['total_persons'])],
-            ['Total Alerts Generated', str(len(session_data['alerts']))]
+            ['Total Alerts Generated', str(len(session_data['alerts']))],
+            ['Frames Recorded', str(len(session_data.get('recording_frames', [])))]  # FIXED: Added frame count
         ]
         
         session_table = Table(session_info, colWidths=[3*inch, 2*inch])
@@ -846,7 +888,8 @@ def generate_pdf_report(session_data, output_path):
             ['Focus Quality Rating', focus_rating],
             ['Average Focus Metric', average_focus_metric],  # FIXED: More meaningful metric
             ['Distraction Frequency', f"{len(session_data['alerts'])} alerts in {format_time(total_session_seconds)}"],
-            ['Most Common Distraction', get_most_common_distraction(session_data['alerts'])]
+            ['Most Common Distraction', get_most_common_distraction(session_data['alerts'])],
+            ['Recording Quality', f"{len(session_data.get('recording_frames', []))} frames captured"]  # FIXED: Added recording info
         ]
         
         focus_table = Table(focus_stats, colWidths=[3*inch, 2*inch])
@@ -905,7 +948,7 @@ def generate_pdf_report(session_data, output_path):
         
         # Footer
         story.append(Spacer(1, 30))
-        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - Railway Deployment"
+        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - FIXED Railway Deployment"
         footer_style = ParagraphStyle(
             'Footer',
             parent=styles['Normal'],
@@ -1050,7 +1093,7 @@ def generate_upload_pdf_report(detections, file_info, output_path):
         
         # Footer
         story.append(Spacer(1, 30))
-        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - Railway Deployment"
+        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - FIXED Railway Deployment"
         footer_style = ParagraphStyle(
             'Footer',
             parent=styles['Normal'],
@@ -1196,7 +1239,7 @@ def start_monitoring():
         client_session_id = request_data.get('sessionId')
         
         with monitoring_lock:
-            print(f"=== START MONITORING REQUEST ===")
+            print(f"=== FIXED START MONITORING REQUEST ===")
             print(f"Current status: live_monitoring_active={live_monitoring_active}")
             print(f"Client session ID: {client_session_id}")
             
@@ -1204,7 +1247,7 @@ def start_monitoring():
                 print("WARNING: Monitoring already active, returning error")
                 return jsonify({"status": "error", "message": "Monitoring already active"})
             
-            # Reset session data completely
+            # FIXED: Reset session data completely dengan enhanced frame tracking
             session_data = {
                 'start_time': datetime.now(),
                 'end_time': None,
@@ -1220,7 +1263,10 @@ def start_monitoring():
                 'recording_path': None,
                 'recording_frames': [],
                 'session_id': client_session_id,
-                'client_alerts': []
+                'client_alerts': [],
+                'frame_counter': 0,  # FIXED: Consistent frame tracking
+                'frame_timestamps': [],  # FIXED: Track timing
+                'total_frames_processed': 0  # FIXED: Total processing count
             }
             
             person_state_timers = {}
@@ -1230,12 +1276,12 @@ def start_monitoring():
             live_monitoring_active = True
             recording_active = True
             
-            print(f"Railway monitoring started at {session_data['start_time']}")
+            print(f"FIXED: Railway monitoring started at {session_data['start_time']}")
             print(f"Status: live_monitoring_active={live_monitoring_active}")
             print(f"Session ID: {client_session_id}")
-            print(f"=== START MONITORING SUCCESS ===")
+            print(f"=== FIXED START MONITORING SUCCESS ===")
             
-            return jsonify({"status": "success", "message": "Railway monitoring started", "session_id": client_session_id})
+            return jsonify({"status": "success", "message": "FIXED Railway monitoring started", "session_id": client_session_id})
         
     except Exception as e:
         print(f"Error starting monitoring: {str(e)}")
@@ -1253,7 +1299,7 @@ def stop_monitoring():
         total_client_alerts = request_data.get('totalAlerts', 0)
         
         with monitoring_lock:
-            print(f"=== STOP MONITORING REQUEST ===")
+            print(f"=== FIXED STOP MONITORING REQUEST ===")
             print(f"Current status: live_monitoring_active={live_monitoring_active}")
             print(f"Client session ID: {client_session_id}")
             print(f"Client alerts count: {len(client_alerts)}")
@@ -1263,7 +1309,9 @@ def stop_monitoring():
                 print(f"Server session ID: {session_data.get('session_id')}")
                 print(f"Session start time: {session_data.get('start_time')}")
                 print(f"Server alerts: {len(session_data.get('alerts', []))}")
-                print(f"Total frames: {len(session_data.get('recording_frames', []))}")
+                print(f"FIXED: Total frames captured: {len(session_data.get('recording_frames', []))}")
+                print(f"FIXED: Frame counter: {session_data.get('frame_counter', 0)}")
+                print(f"FIXED: Total frames processed: {session_data.get('total_frames_processed', 0)}")
             
             # Enhanced session validation
             if not live_monitoring_active and (not session_data or not session_data.get('start_time')):
@@ -1288,7 +1336,10 @@ def stop_monitoring():
                     'recording_path': None,
                     'recording_frames': [],
                     'session_id': client_session_id,
-                    'client_alerts': []
+                    'client_alerts': [],
+                    'frame_counter': 0,
+                    'frame_timestamps': [],
+                    'total_frames_processed': 0
                 }
             
             if not session_data.get('start_time'):
@@ -1296,7 +1347,7 @@ def stop_monitoring():
             
             # Merge client alerts dengan server alerts
             if client_alerts:
-                print(f"Merging {len(client_alerts)} client alerts with server data")
+                print(f"FIXED: Merging {len(client_alerts)} client alerts with server data")
                 session_data['client_alerts'] = client_alerts
                 
                 # Convert client alerts ke server format dan merge
@@ -1310,87 +1361,90 @@ def stop_monitoring():
                     }
                     session_data['alerts'].append(server_alert)
                 
-                print(f"Total alerts after merge: {len(session_data['alerts'])}")
+                print(f"FIXED: Total alerts after merge: {len(session_data['alerts'])}")
             
             # Stop monitoring
             live_monitoring_active = False
             recording_active = False
             session_data['end_time'] = datetime.now()
             
-            print(f"Monitoring stopped at {session_data['end_time']}")
+            print(f"FIXED: Monitoring stopped at {session_data['end_time']}")
             
             response_data = {
                 "status": "success", 
-                "message": "Railway monitoring stopped",
-                "alerts_processed": len(session_data['alerts'])
+                "message": "FIXED Railway monitoring stopped",
+                "alerts_processed": len(session_data['alerts']),
+                "frames_captured": len(session_data.get('recording_frames', []))  # FIXED: Added frame info
             }
             
             # Generate PDF report
-            print("=== GENERATING PDF REPORT ===")
+            print("=== FIXED GENERATING PDF REPORT ===")
             try:
                 pdf_filename = f"session_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.pdf"
                 pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
                 
-                print(f"PDF path: {pdf_path}")
-                print(f"Session data alerts: {len(session_data['alerts'])}")
+                print(f"FIXED: PDF path: {pdf_path}")
+                print(f"FIXED: Session data alerts: {len(session_data['alerts'])}")
+                print(f"FIXED: Session frames for report: {len(session_data.get('recording_frames', []))}")
                 
                 pdf_result = generate_pdf_report(session_data, pdf_path)
                 
                 if pdf_result and os.path.exists(pdf_path):
                     response_data["pdf_report"] = f"/static/reports/{pdf_filename}"
-                    print(f"PDF SUCCESS: {pdf_filename} (size: {os.path.getsize(pdf_path)} bytes)")
+                    print(f"FIXED PDF SUCCESS: {pdf_filename} (size: {os.path.getsize(pdf_path)} bytes)")
                 else:
-                    print("PDF FAILED: File not created")
+                    print("FIXED PDF FAILED: File not created")
                     
             except Exception as pdf_error:
-                print(f"PDF ERROR: {str(pdf_error)}")
+                print(f"FIXED PDF ERROR: {str(pdf_error)}")
                 traceback.print_exc()
             
-            # Generate video recording
-            print("=== GENERATING VIDEO RECORDING ===")
+            # FIXED: Generate video recording dengan enhanced timing
+            print("=== FIXED GENERATING VIDEO RECORDING ===")
             try:
                 recording_filename = f"session_recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.mp4"
                 recording_path = os.path.join(application.config['RECORDINGS_FOLDER'], recording_filename)
                 
-                print(f"Video path: {recording_path}")
+                print(f"FIXED: Video path: {recording_path}")
                 frame_count = len(session_data.get('recording_frames', []))
-                print(f"Available frames: {frame_count}")
+                print(f"FIXED: Available frames: {frame_count}")
+                print(f"FIXED: Session duration: {(session_data.get('end_time', datetime.now()) - session_data.get('start_time', datetime.now())).total_seconds():.2f}s")
                 
                 if frame_count > 0:
-                    print(f"Creating video from {frame_count} recorded frames")
+                    print(f"FIXED: Creating video from {frame_count} recorded frames with enhanced timing")
                     video_result = create_session_recording_from_frames(
                         session_data['recording_frames'],
                         recording_path,
                         session_data.get('start_time', datetime.now() - timedelta(seconds=10)),
                         session_data.get('end_time', datetime.now())
                     )
-
                     
                     if video_result and os.path.exists(recording_path):
                         response_data["video_file"] = f"/static/recordings/{os.path.basename(recording_path)}"
                         session_data['recording_path'] = recording_path
-                        print(f"VIDEO SUCCESS: {os.path.basename(recording_path)} (size: {os.path.getsize(recording_path)} bytes)")
+                        file_size = os.path.getsize(recording_path)
+                        print(f"FIXED VIDEO SUCCESS: {os.path.basename(recording_path)} (size: {file_size} bytes)")
                     else:
-                        print("VIDEO FAILED: Unable to create from frames")
+                        print("FIXED VIDEO FAILED: Unable to create from frames")
                 else:
-                    print("VIDEO SKIPPED: No frames available")
+                    print("FIXED VIDEO SKIPPED: No frames available - check frame storage logic")
                     
             except Exception as video_error:
-                print(f"VIDEO ERROR: {str(video_error)}")
+                print(f"FIXED VIDEO ERROR: {str(video_error)}")
                 traceback.print_exc()
             
-            print(f"=== STOP MONITORING COMPLETE ===")
+            print(f"=== FIXED STOP MONITORING COMPLETE ===")
             print(f"Response: {response_data}")
             return jsonify(response_data)
         
     except Exception as e:
-        print(f"FATAL ERROR stopping monitoring: {str(e)}")
+        print(f"FIXED FATAL ERROR stopping monitoring: {str(e)}")
         traceback.print_exc()
         return jsonify({"status": "error", "message": f"Failed to stop monitoring: {str(e)}"})
 
 @application.route('/process_frame', methods=['POST'])
 def process_frame():
-    """Enhanced frame processing dengan Railway optimization"""
+    """FIXED: Enhanced frame processing dengan consistent storage dan timing"""
     global session_data
     
     try:
@@ -1409,39 +1463,64 @@ def process_frame():
         # Process frame untuk detection dengan enhanced analysis
         processed_frame, detections = detect_persons_with_attention(frame, mode="video")
         
-        # Enhanced frame storage dengan Railway optimization
+        # FIXED: Enhanced frame storage dengan consistent logic
         with monitoring_lock:
             if live_monitoring_active and recording_active and session_data:
-                # Store frame every 5th call untuk Railway memory management
-                current_frame_count = len(session_data.get('recording_frames', []))
-                if current_frame_count % 5 == 0:  # Reduced frequency untuk Railway
-                    session_data['recording_frames'].append(processed_frame.copy())
+                # FIXED: Use consistent frame counter instead of array length
+                session_data['frame_counter'] = session_data.get('frame_counter', 0) + 1
+                session_data['total_frames_processed'] = session_data.get('total_frames_processed', 0) + 1
+                current_timestamp = time.time()
+                
+                # FIXED: Store frames more frequently dengan better logic
+                should_store_frame = (
+                    session_data['frame_counter'] % FRAME_STORAGE_INTERVAL == 0 or  # Every Nth frame
+                    len(detections) > 0 or  # Always store frames with detections
+                    len(session_data.get('recording_frames', [])) < 10  # Always store first 10 frames
+                )
+                
+                if should_store_frame:
+                    # Create a copy to avoid reference issues
+                    frame_copy = processed_frame.copy()
+                    session_data['recording_frames'].append(frame_copy)
+                    session_data['frame_timestamps'].append(current_timestamp)
                     
-                    # Keep memory usage low untuk Railway - maksimal 100 frames
-                    if len(session_data['recording_frames']) > 100:
-                        session_data['recording_frames'] = session_data['recording_frames'][-100:]
+                    print(f"FIXED: Frame {session_data['frame_counter']} stored (total stored: {len(session_data['recording_frames'])})")
                     
-                    # Debug log every 20th frame
-                    if current_frame_count % 20 == 0:
-                        print(f"RAILWAY FRAME STORAGE: {len(session_data['recording_frames'])} frames stored, {len(detections)} detections")
+                    # FIXED: Better memory management - keep more frames for better video quality
+                    if len(session_data['recording_frames']) > MAX_STORED_FRAMES:
+                        # Remove oldest frames but keep reasonable amount
+                        frames_to_remove = len(session_data['recording_frames']) - MAX_STORED_FRAMES
+                        session_data['recording_frames'] = session_data['recording_frames'][frames_to_remove:]
+                        session_data['frame_timestamps'] = session_data['frame_timestamps'][frames_to_remove:]
+                        print(f"FIXED: Memory management - removed {frames_to_remove} oldest frames")
+                
+                # FIXED: Debug logging every 10th frame
+                if session_data['frame_counter'] % 10 == 0:
+                    print(f"FIXED FRAME STORAGE STATUS:")
+                    print(f"  - Frames processed: {session_data['total_frames_processed']}")
+                    print(f"  - Frames stored: {len(session_data.get('recording_frames', []))}")
+                    print(f"  - Current detections: {len(detections)}")
+                    print(f"  - Storage ratio: {len(session_data.get('recording_frames', [])) / max(1, session_data['total_frames_processed']) * 100:.1f}%")
         
         # Update session statistics jika monitoring active
         if live_monitoring_active and detections:
             update_session_statistics(detections)
         
         # Encode processed frame back to base64 dengan quality optimization untuk Railway
-        _, buffer = cv.imencode('.jpg', processed_frame, [cv.IMWRITE_JPEG_QUALITY, 80])  # Reduced quality untuk Railway
+        _, buffer = cv.imencode('.jpg', processed_frame, [cv.IMWRITE_JPEG_QUALITY, 85])  # Slightly higher quality
         processed_frame_b64 = base64.b64encode(buffer).decode('utf-8')
         
         return jsonify({
             "success": True,
             "processed_frame": f"data:image/jpeg;base64,{processed_frame_b64}",
             "detections": detections,
-            "frame_count": len(session_data.get('recording_frames', [])) if session_data else 0
+            "frame_count": len(session_data.get('recording_frames', [])) if session_data else 0,
+            "total_processed": session_data.get('total_frames_processed', 0) if session_data else 0,  # FIXED: Added processing count
+            "frame_number": session_data.get('frame_counter', 0) if session_data else 0  # FIXED: Added frame number
         })
         
     except Exception as e:
-        print(f"Error processing frame: {str(e)}")
+        print(f"FIXED: Error processing frame: {str(e)}")
         traceback.print_exc()
         return jsonify({"error": f"Frame processing failed: {str(e)}"}), 500
 
@@ -1457,13 +1536,13 @@ def sync_alerts():
         with monitoring_lock:
             if session_data and session_data.get('session_id') == session_id:
                 session_data['client_alerts'] = client_alerts
-                print(f"Synced {len(client_alerts)} client alerts for session {session_id}")
+                print(f"FIXED: Synced {len(client_alerts)} client alerts for session {session_id}")
                 return jsonify({"status": "success", "synced_count": len(client_alerts)})
             else:
                 return jsonify({"status": "error", "message": "Session mismatch"})
                 
     except Exception as e:
-        print(f"Alert sync error: {str(e)}")
+        print(f"FIXED: Alert sync error: {str(e)}")
         return jsonify({"status": "error", "message": str(e)})
 
 @application.route('/get_monitoring_data')
@@ -1523,26 +1602,29 @@ def get_monitoring_data():
                 'alert_count': len(current_alerts),
                 'current_status': current_status,
                 'latest_alerts': formatted_alerts,
-                'frame_count': len(session_data.get('recording_frames', [])) if session_data else 0
+                'frame_count': len(session_data.get('recording_frames', [])) if session_data else 0,
+                'total_processed': session_data.get('total_frames_processed', 0) if session_data else 0  # FIXED: Added total processed
             })
         
     except Exception as e:
-        print(f"Error getting monitoring data: {str(e)}")
+        print(f"FIXED: Error getting monitoring data: {str(e)}")
         traceback.print_exc()
         return jsonify({"error": f"Failed to get monitoring data: {str(e)}"})
 
 @application.route('/monitoring_status')
 def monitoring_status():
-    """Get current monitoring status"""
+    """Get current monitoring status dengan enhanced info"""
     try:
         with monitoring_lock:
             return jsonify({
                 "is_active": live_monitoring_active,
                 "session_id": session_data.get('session_id') if session_data else None,
-                "alerts_count": len(session_data.get('alerts', [])) if session_data else 0
+                "alerts_count": len(session_data.get('alerts', [])) if session_data else 0,
+                "frames_stored": len(session_data.get('recording_frames', [])) if session_data else 0,  # FIXED: Added frame info
+                "frames_processed": session_data.get('total_frames_processed', 0) if session_data else 0  # FIXED: Added processing info
             })
     except Exception as e:
-        print(f"Error getting monitoring status: {str(e)}")
+        print(f"FIXED: Error getting monitoring status: {str(e)}")
         return jsonify({"is_active": False})
 
 @application.route('/check_camera')
@@ -1551,12 +1633,12 @@ def check_camera():
     try:
         return jsonify({"camera_available": False})  # Force client-side camera untuk Railway
     except Exception as e:
-        print(f"Error checking camera: {str(e)}")
+        print(f"FIXED: Error checking camera: {str(e)}")
         return jsonify({"camera_available": False})
 
 @application.route('/health')
 def health_check():
-    """Enhanced health check endpoint untuk Railway"""
+    """Enhanced health check endpoint untuk Railway dengan frame info"""
     try:
         with monitoring_lock:
             return jsonify({
@@ -1571,11 +1653,13 @@ def health_check():
                 "monitoring_active": live_monitoring_active,
                 "session_alerts": len(session_data.get('alerts', [])) if session_data else 0,
                 "recording_frames": len(session_data.get('recording_frames', [])) if session_data else 0,
+                "total_frames_processed": session_data.get('total_frames_processed', 0) if session_data else 0,  # FIXED: Added processing count
+                "frame_storage_ratio": len(session_data.get('recording_frames', [])) / max(1, session_data.get('total_frames_processed', 1)) * 100 if session_data else 0,  # FIXED: Storage ratio
                 "mediapipe_status": "initialized" if face_detection and face_mesh else "error",
-                "version": "railway_optimized_v1.0"
+                "version": "railway_optimized_FIXED_v2.0"
             })
     except Exception as e:
-        print(f"Health check error: {str(e)}")
+        print(f"FIXED: Health check error: {str(e)}")
         return jsonify({
             "status": "error",
             "error": str(e),
@@ -1640,7 +1724,7 @@ def report_file(filename):
         else:
             return jsonify({"error": "Report file not found"}), 404
     except Exception as e:
-        print(f"Error serving report file: {str(e)}")
+        print(f"FIXED: Error serving report file: {str(e)}")
         return jsonify({"error": "Error accessing report file"}), 500
 
 @application.route('/static/recordings/<filename>')
@@ -1659,7 +1743,7 @@ def recording_file(filename):
         else:
             return jsonify({"error": "Recording file not found"}), 404
     except Exception as e:
-        print(f"Error serving recording file: {str(e)}")
+        print(f"FIXED: Error serving recording file: {str(e)}")
         return jsonify({"error": "Error accessing recording file"}), 500
 
 if __name__ == "__main__":
@@ -1669,7 +1753,11 @@ if __name__ == "__main__":
             print("WARNING: MediaPipe initialization failed, continuing with limited functionality")
         
         port = int(os.environ.get('PORT', 5000))
-        print(f"Starting Railway Optimized Smart Focus Alert application on port {port}")
+        print(f"FIXED: Starting Railway Optimized Smart Focus Alert application on port {port}")
+        print("FIXED: Frame storage configuration:")
+        print(f"  - Storage interval: every {FRAME_STORAGE_INTERVAL} frames")
+        print(f"  - Max stored frames: {MAX_STORED_FRAMES}")
+        print(f"  - Recording FPS: {RECORDING_FPS}")
         print("Directories:")
         for name, path in [
             ("UPLOAD", application.config['UPLOAD_FOLDER']),
@@ -1681,5 +1769,5 @@ if __name__ == "__main__":
         
         application.run(host='0.0.0.0', port=port, debug=False)
     except Exception as e:
-        print(f"Application startup error: {str(e)}")
+        print(f"FIXED: Application startup error: {str(e)}")
         traceback.print_exc()
