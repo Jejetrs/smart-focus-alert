@@ -636,26 +636,21 @@ def calculate_average_focus_metric(focused_time, total_session_seconds):
         return f"{focused_per_hour:.1f} min focused per hour"
 
 def create_session_recording_from_frames(recording_frames, output_path, session_start_time, session_end_time):
-    """Create session recording dari frames dengan auto-synced duration"""
     try:
         if not recording_frames:
             print("No frames to create video")
             return None
 
-        print(f"Creating session recording from {len(recording_frames)} processed frames")
-
-        # Hitung durasi sesi sebenarnya
         actual_duration = session_end_time - session_start_time
-        if actual_duration <= 0:
+        actual_duration_seconds = actual_duration.total_seconds()
+        if actual_duration_seconds <= 0:
             print("Invalid session duration")
             return None
 
-        # Hitung FPS berdasarkan durasi dan jumlah frame
-        fps = len(recording_frames) / actual_duration
-        fps = max(1.0, min(fps, 30.0))  # Batasi fps antara 1 dan 30
-        print(f"Calculated FPS: {fps:.2f} for duration {actual_duration:.2f}s")
+        fps = len(recording_frames) / actual_duration_seconds
+        fps = max(1.0, min(fps, 30.0))  # Batasi antara 1 dan 30
+        print(f"Calculated FPS: {fps:.2f} for duration {actual_duration_seconds:.2f}s")
 
-        # Dapatkan ukuran frame
         height, width = recording_frames[0].shape[:2]
         fourcc = cv.VideoWriter_fourcc(*'mp4v')
         out = cv.VideoWriter(output_path, fourcc, fps, (width, height))
@@ -664,22 +659,16 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
             print(f"Error: Could not open video writer for {output_path}")
             return None
 
-        frames_written = 0
         for frame in recording_frames:
             if frame is not None and frame.size > 0:
-                if frame.shape[:2] == (height, width):
-                    out.write(frame)
-                else:
-                    resized_frame = cv.resize(frame, (width, height))
-                    out.write(resized_frame)
-                frames_written += 1
+                if frame.shape[:2] != (height, width):
+                    frame = cv.resize(frame, (width, height))
+                out.write(frame)
 
         out.release()
 
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            file_size = os.path.getsize(output_path) / (1024 * 1024)  # MB
-            print(f"Session recording created successfully: {output_path}")
-            print(f"Total frames written: {frames_written}, File size: {file_size:.2f}MB")
+            print(f"Recording created: {output_path}")
             return output_path
         else:
             print("Failed to create session recording - file not created atau empty")
