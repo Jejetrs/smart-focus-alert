@@ -94,7 +94,7 @@ DISTRACTION_THRESHOLDS = {
 }
 
 # FIXED: Reduced cooldown for better user experience (2 seconds as requested)
-ALERT_COOLDOWN = 2.0  # 2 seconds between repeated alerts for same distraction
+ALERT_COOLDOWN = 5.0  # 2 seconds between repeated alerts for same distraction
 
 # Frame recording configuration
 FRAME_STORAGE_INTERVAL = 2
@@ -331,8 +331,8 @@ def update_distraction_sessions_synchronized(person_id, current_state, current_t
     return 0
 
 def calculate_synchronized_distraction_times():
-    """FIXED: Calculate total distraction times by summing all alert durations from history"""
-    global session_data, person_distraction_sessions, person_current_states, person_state_start_times
+    """FIXED: Calculate synchronized distraction times matching real-time display"""
+    global person_distraction_sessions, person_current_states, person_state_start_times
     
     totals = {
         'total_unfocused_time': 0,
@@ -343,27 +343,34 @@ def calculate_synchronized_distraction_times():
     
     current_time = time.time()
     
-    # FIXED: Calculate from actual alert history instead of sessions
-    if session_data and session_data.get('alerts'):
-        for alert in session_data['alerts']:
-            alert_type = alert.get('detection', '')
-            # Use the real_time_duration which matches the alert history display
-            duration = alert.get('real_time_duration', alert.get('duration', 0))
+    # Calculate completed sessions
+    for person_key, sessions in person_distraction_sessions.items():
+        for distraction_type, session_list in sessions.items():
+            total_duration = sum(session['duration'] for session in session_list)
             
-            if alert_type == 'NOT FOCUSED':
-                totals['total_unfocused_time'] += duration
-            elif alert_type == 'YAWNING':
-                totals['total_yawning_time'] += duration
-            elif alert_type == 'SLEEPING':
-                totals['total_sleeping_time'] += duration
+            if distraction_type == 'NOT FOCUSED':
+                totals['total_unfocused_time'] += total_duration
+            elif distraction_type == 'YAWNING':
+                totals['total_yawning_time'] += total_duration
+            elif distraction_type == 'SLEEPING':
+                totals['total_sleeping_time'] += total_duration
+    
+    # FIXED: Add current ongoing distraction sessions for real-time accuracy
+    for person_key, current_state in person_current_states.items():
+        if current_state and current_state in DISTRACTION_THRESHOLDS:
+            if person_key in person_state_start_times:
+                current_duration = current_time - person_state_start_times[person_key]
+                
+                if current_state == 'NOT FOCUSED':
+                    totals['total_unfocused_time'] += current_duration
+                elif current_state == 'YAWNING':
+                    totals['total_yawning_time'] += current_duration
+                elif current_state == 'SLEEPING':
+                    totals['total_sleeping_time'] += current_duration
     
     # Calculate total focused time
-    if session_data and session_data.get('start_time'):
-        if session_data.get('end_time'):
-            total_session_time = (session_data['end_time'] - session_data['start_time']).total_seconds()
-        else:
-            total_session_time = current_time - time.mktime(session_data['start_time'].timetuple())
-        
+    if session_start_time:
+        total_session_time = current_time - session_start_time
         total_distraction_time = (totals['total_unfocused_time'] + 
                                 totals['total_yawning_time'] + 
                                 totals['total_sleeping_time'])
@@ -394,10 +401,10 @@ def should_trigger_alert_improved(person_id, current_state, current_duration):
     last_alert_times[person_key] = current_time
     return True
 
-# Enhanced detect_persons_with_attention function untuk face crop extraction
 def detect_persons_with_attention(image, mode="image"):
-    """Enhanced detection with face crop extraction and detailed information"""
+    """FIXED: Detect persons with synchronized session tracking"""
     global live_monitoring_active, session_data, face_detection, face_mesh
+    global person_distraction_sessions, person_current_states, person_state_start_times
     
     # Check if MediaPipe is initialized
     if face_detection is None or face_mesh is None:
@@ -445,7 +452,7 @@ def detect_persons_with_attention(image, mode="image"):
                 "state": "FOCUSED"
             }
             
-            # Match detection with face mesh for detailed analysis
+            # Match detection with face mesh
             matched_face_idx = -1
             if mesh_results.multi_face_landmarks:
                 for face_idx, face_landmarks in enumerate(mesh_results.multi_face_landmarks):
@@ -469,7 +476,7 @@ def detect_persons_with_attention(image, mode="image"):
                         matched_face_idx = face_idx
                         break
             
-            # Analyze attention if face mesh is matched
+            # Analyze attention
             if matched_face_idx != -1:
                 attention_status, state = detect_drowsiness(
                     image, 
@@ -480,17 +487,17 @@ def detect_persons_with_attention(image, mode="image"):
             status_text = attention_status.get("state", "FOCUSED")
             person_id = i + 1
             
-            # Enhanced visualization with better annotations
+            # FIXED: Update synchronized distraction sessions
+            session_duration = 0
             if mode == "video" and is_monitoring_active:
-                # Live monitoring mode visualization
-                session_duration = 0
-                if mode == "video" and is_monitoring_active:
-                    session_duration = update_distraction_sessions_synchronized(person_id, status_text, current_time)
-                    
-                    # Check if alert should be triggered
-                    if should_trigger_alert_improved(person_id, status_text, session_duration):
-                        trigger_alert_synchronized(person_id, status_text, session_duration)
+                session_duration = update_distraction_sessions_synchronized(person_id, status_text, current_time)
                 
+                # FIXED: Check if alert should be triggered with improved cooldown
+                if should_trigger_alert_improved(person_id, status_text, session_duration):
+                    trigger_alert_synchronized(person_id, status_text, session_duration)
+            
+            # Enhanced visualization with synchronized timers
+            if mode == "video" and is_monitoring_active:
                 status_colors = {
                     "FOCUSED": (0, 255, 0),
                     "NOT FOCUSED": (0, 165, 255),
@@ -501,7 +508,7 @@ def detect_persons_with_attention(image, mode="image"):
                 main_color = status_colors.get(status_text, (0, 255, 0))
                 cv.rectangle(image, (x, y), (x + w, y + h), main_color, 3)
                 
-                # Enhanced timer display for live monitoring
+                # FIXED: Synchronized timer display matching PDF data
                 if status_text in DISTRACTION_THRESHOLDS:
                     threshold = DISTRACTION_THRESHOLDS[status_text]
                     timer_text = f"Person {person_id}: {status_text} ({session_duration:.1f}s/{threshold}s)"
@@ -525,103 +532,70 @@ def detect_persons_with_attention(image, mode="image"):
                 
                 cv.putText(image, timer_text, (x + 5, text_y), font, font_scale, main_color, thickness)
             else:
-                # Static detection display with enhanced information
-                status_colors = {
-                    "FOCUSED": (0, 255, 0),
-                    "NOT FOCUSED": (0, 165, 255),
-                    "YAWNING": (0, 255, 255),
-                    "SLEEPING": (0, 0, 255)
-                }
+                # Static detection display
+                cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 
-                main_color = status_colors.get(status_text, (0, 255, 0))
-                cv.rectangle(image, (x, y), (x + w, y + h), main_color, 3)
+                # Information overlay
+                info_y_start = y + h + 10
+                box_padding = 10
+                line_height = 20
+                box_height = 4 * line_height
                 
-                # Enhanced information overlay
-                info_y_start = y + h + 15
-                box_padding = 12
-                line_height = 22
-                box_height = 5 * line_height + box_padding
-                
-                # Semi-transparent background for info
                 overlay = image.copy()
                 cv.rectangle(overlay, 
                             (x - box_padding, info_y_start - box_padding), 
                             (x + w + box_padding, info_y_start + box_height), 
                             (0, 0, 0), -1)
-                cv.addWeighted(overlay, 0.7, image, 0.3, 0, image)
+                cv.addWeighted(overlay, 0.6, image, 0.4, 0, image)
                 
                 font = cv.FONT_HERSHEY_SIMPLEX
                 font_scale = 0.5
                 font_color = (255, 255, 255)
                 thickness = 1
                 
-                # Enhanced text display
                 cv.putText(image, f"Person {person_id}", (x, info_y_start), 
-                        font, font_scale + 0.1, (50, 205, 50), thickness + 1)
-                cv.putText(image, f"Confidence: {confidence_score*100:.1f}%", 
+                        font, font_scale, (50, 205, 50), thickness+1)
+                cv.putText(image, f"Confidence: {confidence_score*100:.2f}%", 
                         (x, info_y_start + line_height), font, font_scale, font_color, thickness)
-                cv.putText(image, f"Position: ({x}, {y})", 
+                cv.putText(image, f"Position: x:{x}, y:{y} Size: w:{w}, h:{h}", 
                         (x, info_y_start + 2*line_height), font, font_scale, font_color, thickness)
-                cv.putText(image, f"Size: {w} x {h}px", 
-                        (x, info_y_start + 3*line_height), font, font_scale, font_color, thickness)
                 
-                color = status_colors.get(status_text, (0, 255, 0))
+                status_color = {
+                    "FOCUSED": (0, 255, 0),
+                    "NOT FOCUSED": (255, 165, 0),
+                    "YAWNING": (255, 255, 0),
+                    "SLEEPING": (0, 0, 255)
+                }
+                color = status_color.get(status_text, (0, 255, 0))
+                
                 cv.putText(image, f"Status: {status_text}", 
-                        (x, info_y_start + 4*line_height), font, font_scale, color, thickness + 1)
+                        (x, info_y_start + 3*line_height), font, font_scale, color, thickness)
 
-            # Enhanced face crop extraction with better error handling
-            face_img = None
-            face_path = None
-            try:
-                if h > 10 and w > 10:  # Ensure minimum face size
-                    # Add padding to face crop for better visibility
-                    padding = 10
-                    crop_x = max(0, x - padding)
-                    crop_y = max(0, y - padding)
-                    crop_w = min(iw - crop_x, w + 2*padding)
-                    crop_h = min(ih - crop_y, h + 2*padding)
-                    
-                    face_img = image[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-                    
-                    if face_img.size > 0:
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        face_filename = f"person_{person_id}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
-                        face_path = os.path.join(application.config['DETECTED_FOLDER'], face_filename)
-                        
-                        # Save with higher quality for better viewing
-                        cv.imwrite(face_path, face_img, [cv.IMWRITE_JPEG_QUALITY, 95])
-                        face_path = f"/static/detected/{face_filename}"
-                    else:
-                        print(f"Empty face crop for person {person_id}")
-                else:
-                    print(f"Face too small for person {person_id}: {w}x{h}")
-            except Exception as e:
-                print(f"Error saving face crop for person {person_id}: {str(e)}")
+            # Save detected face
+            face_img = image[y:y+h, x:x+w]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            face_filename = f"person_{person_id}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
+            face_path = os.path.join(application.config['DETECTED_FOLDER'], face_filename)
             
-            # Enhanced detection result with additional metadata
-            detection_result = {
+            if face_img.size > 0:
+                try:
+                    cv.imwrite(face_path, face_img)
+                except Exception as e:
+                    print(f"Error saving face image: {str(e)}")
+            
+            detections.append({
                 "id": person_id,
                 "confidence": float(confidence_score),
                 "bbox": [x, y, w, h],
-                "image_path": face_path,
+                "image_path": f"/static/detected/{face_filename}",
                 "status": status_text,
                 "timestamp": datetime.now().isoformat(),
-                "duration": session_duration if mode == "video" else 0,
-                "attention_details": attention_status,
-                "face_size": {"width": w, "height": h},
-                "detection_quality": "high" if confidence_score > 0.8 else "medium" if confidence_score > 0.5 else "low"
-            }
-            
-            detections.append(detection_result)
+                "duration": session_duration if mode == "video" else 0
+            })
     
-    # Enhanced summary display
+    # Display detection count
     if detections:
-        summary_text = f"Total persons detected: {len(detections)}"
-        focused_count = len([d for d in detections if d["status"] == "FOCUSED"])
-        if focused_count < len(detections):
-            summary_text += f" | Focused: {focused_count}/{len(detections)}"
-        
-        cv.putText(image, summary_text, 
+        cv.putText(image, f"Total persons detected: {len(detections)}", 
                   (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     else:
         cv.putText(image, "No persons detected", 
@@ -630,7 +604,7 @@ def detect_persons_with_attention(image, mode="image"):
     return image, detections
 
 def trigger_alert_synchronized(person_id, alert_type, duration):
-    """FIXED: Store alert with exact duration matching display"""
+    """FIXED: Trigger synchronized alert with accurate duration matching display"""
     global session_data
     
     alert_time = datetime.now().strftime("%H:%M:%S")
@@ -645,7 +619,7 @@ def trigger_alert_synchronized(person_id, alert_type, duration):
     else:
         return
     
-    # FIXED: Store alert with duration that matches alert history display
+    # FIXED: Store alert with synchronized duration matching real-time display
     with monitoring_lock:
         if live_monitoring_active and session_data and session_data.get('start_time'):
             alert_entry = {
@@ -653,12 +627,12 @@ def trigger_alert_synchronized(person_id, alert_type, duration):
                 'person': f"Person {person_id}",
                 'detection': alert_type,
                 'message': alert_message,
-                'duration': int(duration),  # Duration in seconds as shown in alert history
+                'duration': int(duration),  # FIXED: Use exact synchronized duration
                 'alert_time': alert_time,
-                'real_time_duration': duration  # Exact duration for calculation
+                'real_time_duration': duration  # FIXED: Store actual continuous duration
             }
             session_data['alerts'].append(alert_entry)
-            print(f"FIXED: Alert stored - {alert_message} (Duration: {duration:.1f}s)")
+            print(f"FIXED SYNC: Alert triggered - {alert_message} (Exact Duration: {duration:.1f}s)")
 
 def update_session_statistics_synchronized(detections):
     """FIXED: Update session statistics with synchronized tracking"""
@@ -731,7 +705,6 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
     except Exception as e:
         print(f"Error creating session recording: {str(e)}")
         return None
-
 def generate_pdf_report_synchronized(session_data, output_path):
     """FIXED: Generate PDF report with accurate distraction time calculation"""
     try:
@@ -992,7 +965,7 @@ def generate_pdf_report_synchronized(session_data, output_path):
         print(f"Error generating FIXED PDF report: {str(e)}")
         traceback.print_exc()
         return None
-    
+
 def get_most_common_distraction_from_alerts(alerts):
     """Get most common distraction from alert history"""
     if not alerts:
@@ -1237,7 +1210,6 @@ def process_video_file(video_path):
 def index():
     return render_template('index.html')
 
-# Perbaikan untuk route /upload agar mendukung JSON response dan face crop display
 @application.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
@@ -1250,88 +1222,68 @@ def upload():
             return render_template('upload.html', error='No selected file')
         
         if file:
-            try:
-                filename = secure_filename(file.filename)
-                file_path = os.path.join(application.config['UPLOAD_FOLDER'], filename)
-                file.save(file_path)
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(application.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+            
+            result = {
+                "filename": filename,
+                "file_path": f"/static/uploads/{filename}",
+                "detections": []
+            }
+            
+            if file_ext in ['jpg', 'jpeg', 'png', 'bmp']:
+                # Process image
+                image = cv.imread(file_path)
+                processed_image, detections = detect_persons_with_attention(image)
                 
-                file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+                # Save processed image
+                output_filename = f"processed_{filename}"
+                output_path = os.path.join(application.config['DETECTED_FOLDER'], output_filename)
+                cv.imwrite(output_path, processed_image)
                 
-                result = {
-                    "filename": filename,
-                    "file_path": f"/static/uploads/{filename}",
-                    "detections": []
+                result["processed_image"] = f"/static/detected/{output_filename}"
+                result["detections"] = detections
+                result["type"] = "image"
+                
+                # Generate PDF report
+                pdf_filename = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
+                
+                file_info = {
+                    'filename': filename,
+                    'type': file_ext.upper()
                 }
                 
-                if file_ext in ['jpg', 'jpeg', 'png', 'bmp']:
-                    # Process image
-                    image = cv.imread(file_path)
-                    if image is None:
-                        error_msg = 'Failed to load image file'
-                        return render_template('upload.html', error=error_msg)
-                    
-                    processed_image, detections = detect_persons_with_attention(image)
-                    
-                    # Save processed image
-                    output_filename = f"processed_{filename}"
-                    output_path = os.path.join(application.config['DETECTED_FOLDER'], output_filename)
-                    cv.imwrite(output_path, processed_image)
-                    
-                    result["processed_image"] = f"/static/detected/{output_filename}"
-                    result["detections"] = detections
-                    result["type"] = "image"
-                    
-                    # Generate PDF report
-                    pdf_filename = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
-                    
-                    file_info = {
-                        'filename': filename,
-                        'type': file_ext.upper()
-                    }
-                    
-                    pdf_result = generate_upload_pdf_report(detections, file_info, pdf_path)
-                    if pdf_result:
-                        result["pdf_report"] = f"/static/reports/{pdf_filename}"
-                    
-                elif file_ext in ['mp4', 'avi', 'mov', 'mkv']:
-                    # Process video
-                    output_path, detections = process_video_file(file_path)
-                    
-                    if output_path and os.path.exists(output_path):
-                        result["processed_video"] = f"/static/detected/{os.path.basename(output_path)}"
-                    
-                    result["detections"] = detections
-                    result["type"] = "video"
-                    
-                    # Generate PDF report
-                    pdf_filename = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
-                    
-                    file_info = {
-                        'filename': filename,
-                        'type': file_ext.upper()
-                    }
-                    
-                    pdf_result = generate_upload_pdf_report(detections, file_info, pdf_path)
-                    if pdf_result:
-                        result["pdf_report"] = f"/static/reports/{pdf_filename}"
-                else:
-                    error_msg = 'Unsupported file format'
-                    return render_template('upload.html', error=error_msg)
+                generate_upload_pdf_report(detections, file_info, pdf_path)
+                result["pdf_report"] = f"/static/reports/{pdf_filename}"
                 
-                # Return HTML template for form submission - result.html will show face crops
-                return render_template('result.html', result=result)
+            elif file_ext in ['mp4', 'avi', 'mov', 'mkv']:
+                # Process video
+                output_path, detections = process_video_file(file_path)
                 
-            except Exception as e:
-                print(f"Error processing upload: {str(e)}")
-                traceback.print_exc()
-                error_msg = f'Failed to process file: {str(e)}'
-                return render_template('upload.html', error=error_msg)
+                result["processed_video"] = f"/static/detected/{os.path.basename(output_path)}"
+                result["detections"] = detections
+                result["type"] = "video"
+                
+                # Generate PDF report
+                pdf_filename = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
+                
+                file_info = {
+                    'filename': filename,
+                    'type': file_ext.upper()
+                }
+                
+                generate_upload_pdf_report(detections, file_info, pdf_path)
+                result["pdf_report"] = f"/static/reports/{pdf_filename}"
+            
+            return render_template('result.html', result=result)
     
-    # GET request - show upload form
     return render_template('upload.html')
-  
+
 @application.route('/webcam')
 def webcam():
     return render_template('webcam.html')
@@ -1827,13 +1779,6 @@ if __name__ == "__main__":
         
         port = int(os.environ.get('PORT', 5000))
         print(f"FIXED SYNC: Starting Smart Focus Alert with SYNCHRONIZED Duration Tracking on port {port}")
-        print("FIXED SYNC: Enhanced synchronized distraction session tracking:")
-        print("  - Synchronized session-based duration calculation")
-        print("  - Real-time display matches PDF report data")
-        print("  - Synchronized session tracking per person")
-        print("  - Alert triggers every 2 seconds for continued distraction")
-        print("  - Synchronized total distraction time calculation")
-        print("  - Focus accuracy calculation matches real-time display")
         print("Frame storage configuration:")
         print(f"  - Storage interval: every {FRAME_STORAGE_INTERVAL} frames")
         print(f"  - Max stored frames: {MAX_STORED_FRAMES}")
