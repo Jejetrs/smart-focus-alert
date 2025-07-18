@@ -94,7 +94,7 @@ DISTRACTION_THRESHOLDS = {
 }
 
 # FIXED: Reduced cooldown for better user experience (2 seconds as requested)
-ALERT_COOLDOWN = 2.0  # 2 seconds between repeated alerts for same distraction
+ALERT_COOLDOWN = 5.0  # 2 seconds between repeated alerts for same distraction
 
 # Frame recording configuration
 FRAME_STORAGE_INTERVAL = 2
