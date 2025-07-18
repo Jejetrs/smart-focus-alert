@@ -207,7 +207,7 @@
             cursor: pointer;
             background: rgba(15, 23, 42, 0.3);
             min-height: 530px;
-            min-width: 700px ;
+            min-width: 700px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -493,7 +493,7 @@
         <!-- Header -->
         <div class="text-center fade-in">
             <h1 class="title-lg text-gradient">Upload & Analyze</h1>
-            <p style="color: var(--text-secondary);">Upload images or videos to analyze focus patterns with AI-powered detection.</p>
+            <p style="color: var(--text-secondary);">Upload images or videos to analyze focus patterns with AI-powered face detection and attention analysis.</p>
         </div>
 
         <!-- Main Layout -->
@@ -502,8 +502,8 @@
             <div class="main-content">
                 <!-- Left Column -->
                 <div class="left-column">
-                    <!-- Upload Form -->
-                    <form id="uploadForm" method="POST" enctype="multipart/form-data" class="slide-in">
+                    <!-- Upload Form - Fixed to match app.py expectations -->
+                    <form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data" class="slide-in">
                         <!-- File Drop Zone -->
                         <div class="file-drop-zone" id="dropZone">
                             <i class="fas fa-cloud-upload-alt upload-icon"></i>
@@ -511,12 +511,13 @@
                             <input type="file" id="fileInput" name="file" accept="image/*,video/*" style="display: none;">
                             <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
                                 <i class="fas fa-folder-open" style="margin-right: 8px;"></i>
-                                Browse file
+                                Browse Files
                             </button>
                             
                             <div class="supported-formats">
                                 <span class="format-badge">JPG</span>
                                 <span class="format-badge">PNG</span>
+                                <span class="format-badge">BMP</span>
                                 <span class="format-badge">MP4</span>
                                 <span class="format-badge">AVI</span>
                                 <span class="format-badge">MOV</span>
@@ -527,7 +528,7 @@
                         <!-- Upload Progress -->
                         <div class="upload-progress" id="uploadProgress">
                             <div class="flex justify-between items-center" style="margin-bottom: 8px;">
-                                <span style="color: var(--text-secondary);">Processing & Analyzing...</span>
+                                <span style="color: var(--text-secondary);">Processing & Analyzing with MediaPipe...</span>
                                 <span style="color: var(--text-secondary);" id="progressPercent">0%</span>
                             </div>
                             <div class="progress-bar">
@@ -546,9 +547,10 @@
                                     </div>
                                 </div>
                                 <div class="file-details">
-                                    <p><strong>Name :</strong> <span id="fileName"></span></p>
-                                    <p><strong>Size :</strong> <span id="fileSize"></span></p>
-                                    <p><strong>Type :</strong> <span id="fileType"></span></p>
+                                    <p><strong>Name:</strong> <span id="fileName"></span></p>
+                                    <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                                    <p><strong>Type:</strong> <span id="fileType"></span></p>
+                                    <p><strong>Status:</strong> <span id="fileStatus" style="color: var(--success);">Ready for analysis</span></p>
                                 </div>
                             </div>
                             
@@ -577,38 +579,38 @@
                     <div class="quick-tips slide-in">
                         <h3 style="color: var(--warning); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
                             <i class="fas fa-lightbulb"></i>
-                            Quick Tips
+                            Analysis Tips
                         </h3>
                         
                         <div class="tip-item">
                             <i class="fas fa-check tip-icon"></i>
                             <div class="tip-content">
-                                <h4>Good Lighting</h4>
-                                <p>Ensure faces are well-lit and clearly visible for accurate landmark detection</p>
+                                <h4>Face Visibility</h4>
+                                <p>Ensure faces are clearly visible and well-lit for accurate MediaPipe face detection</p>
                             </div>
                         </div>
                         
                         <div class="tip-item">
                             <i class="fas fa-check tip-icon"></i>
                             <div class="tip-content">
-                                <h4>Front-facing</h4>
-                                <p>Faces should be facing the camera directly for optimal iris tracking</p>
+                                <h4>Camera Angle</h4>
+                                <p>Front-facing views work best for iris tracking and attention analysis</p>
                             </div>
                         </div>
                         
                         <div class="tip-item">
                             <i class="fas fa-check tip-icon"></i>
                             <div class="tip-content">
-                                <h4>Clear Images:</h4>
-                                <p>Use high-resolution images for better facial landmark precision</p>
+                                <h4>Image Quality</h4>
+                                <p>Use high-resolution images for better facial landmark detection precision</p>
                             </div>
                         </div>
                         
                         <div class="tip-item">
                             <i class="fas fa-check tip-icon"></i>
                             <div class="tip-content">
-                                <h4>File Size:</h4>
-                                <p>Keep files under 100MB for faster processing and report generation</p>
+                                <h4>File Size</h4>
+                                <p>Keep files under 100MB for optimal processing speed and analysis</p>
                             </div>
                         </div>
                     </div>
@@ -618,28 +620,30 @@
             <!-- What You'll Get - Full Width Below -->
             <div class="what-you-get slide-in">
                 <h3>
-                    <i class="fas fa-bookmark"></i>
-                    What You'll Get ?
+                    <i class="fas fa-magic"></i>
+                    What You'll Get from the Analysis
                 </h3>
                 
                 <div class="output-sections">
                     <div class="output-section">
-                        <h4>Processed Media</h4>
+                        <h4>Enhanced Media</h4>
                         <ul class="output-list">
-                            <li><i class="fas fa-check"></i> Facial landmark overlays</li>
-                            <li><i class="fas fa-check"></i> Detection state indicators</li>
-                            <li><i class="fas fa-check"></i> Bounding box annotations</li>
-                            <li><i class="fas fa-check"></i> Individual face crops</li>
+                            <li><i class="fas fa-check"></i> MediaPipe facial landmark overlays</li>
+                            <li><i class="fas fa-check"></i> Attention state indicators (Focus/Unfocus/Yawning/Sleeping)</li>
+                            <li><i class="fas fa-check"></i> Bounding box annotations with confidence scores</li>
+                            <li><i class="fas fa-check"></i> Individual face crops for each detected person</li>
+                            <li><i class="fas fa-check"></i> Iris tracking visualization for focus detection</li>
                         </ul>
                     </div>
                     
                     <div class="output-section">
-                        <h4>PDF Report</h4>
+                        <h4>Comprehensive Report</h4>
                         <ul class="output-list">
-                            <li><i class="fas fa-check"></i> File information & metadata</li>
-                            <li><i class="fas fa-check"></i> Focus accuracy statistics</li>
-                            <li><i class="fas fa-check"></i> Individual detection results</li>
-                            <li><i class="fas fa-check"></i> Professional formatting</li>
+                            <li><i class="fas fa-check"></i> Detailed PDF analysis report</li>
+                            <li><i class="fas fa-check"></i> Focus accuracy statistics and percentages</li>
+                            <li><i class="fas fa-check"></i> Individual person detection results</li>
+                            <li><i class="fas fa-check"></i> Attention state breakdown (Focused/Distracted)</li>
+                            <li><i class="fas fa-check"></i> Professional formatting with visual charts</li>
                         </ul>
                     </div>
                 </div>
@@ -687,7 +691,7 @@
                 }
             });
 
-            // Form submission
+            // Form submission - Fixed to work with app.py POST handler
             document.getElementById('uploadForm').addEventListener('submit', handleFormSubmit);
 
             // Navigation links
@@ -738,20 +742,19 @@
         }
 
         function handleFileSelect(file) {
-            // Validate file type
-            const validTypes = [
-                'image/jpeg', 'image/jpg', 'image/png', 'image/bmp',
-                'video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 'video/x-msvideo'
-            ];
+            // Validate file type - Updated to match app.py supported formats
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp'];
+            const validVideoTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+            const allValidTypes = [...validImageTypes, ...validVideoTypes];
             
-            if (!validTypes.includes(file.type)) {
-                showError('Please select a valid image (JPG, PNG, BMP) or video file (MP4, AVI, MOV)');
+            if (!allValidTypes.includes(file.type)) {
+                showError('Please select a valid image (JPG, PNG, BMP) or video file (MP4, AVI, MOV, MKV)');
                 return;
             }
 
-            // Validate file size (100MB limit)
+            // Validate file size (100MB limit as mentioned in app.py)
             if (file.size > 100 * 1024 * 1024) {
-                showError('File size must be less than 100MB');
+                showError('File size must be less than 100MB for optimal processing');
                 return;
             }
 
@@ -763,7 +766,7 @@
             document.getElementById('fileType').textContent = file.type;
 
             // Show preview
-            if (file.type.startsWith('image/')) {
+            if (validImageTypes.includes(file.type)) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     document.getElementById('filePreview').src = e.target.result;
@@ -780,13 +783,13 @@
             analyzeBtn.disabled = false;
             hideMessages();
 
-            showSuccess(`File "${file.name}" selected successfully. Ready for analysis with PDF report generation.`);
+            const fileTypeText = validImageTypes.includes(file.type) ? 'image' : 'video';
+            showSuccess(`${fileTypeText.charAt(0).toUpperCase() + fileTypeText.slice(1)} "${file.name}" selected successfully. Ready for MediaPipe analysis with PDF report generation.`);
         }
 
         function handleFormSubmit(e) {
-            e.preventDefault();
-            
             if (!selectedFile) {
+                e.preventDefault();
                 showError('Please select a file first');
                 return;
             }
@@ -794,37 +797,13 @@
             // Show progress
             uploadProgress.style.display = 'block';
             analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Analyzing & Generating Report...';
+            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Analyzing with MediaPipe...';
 
-            // Simulate progress
+            // Simulate progress for user feedback
             simulateProgress();
 
-            // Create FormData
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-
-            // Submit form
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Upload failed');
-                }
-            })
-            .then(html => {
-                // Handle success - replace page content
-                document.body.innerHTML = html;
-                window.history.pushState({}, '', '/upload');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Upload failed. Please try again.');
-                resetUploadState();
-            });
+            // The form will submit normally to /upload endpoint as expected by app.py
+            // app.py will handle the POST request and return result.html template
         }
 
         function simulateProgress() {
@@ -838,16 +817,10 @@
                 
                 if (progress >= 95) {
                     clearInterval(interval);
+                    progressPercent.textContent = '100%';
+                    progressFill.style.width = '100%';
                 }
             }, 200);
-        }
-
-        function resetUploadState() {
-            uploadProgress.style.display = 'none';
-            analyzeBtn.disabled = false;
-            analyzeBtn.innerHTML = '<i class="fas fa-search" style="margin-right: 8px;"></i>Analyze & Generate Report';
-            progressFill.style.width = '0%';
-            progressPercent.textContent = '0%';
         }
 
         function formatFileSize(bytes) {
@@ -887,6 +860,18 @@
                 fileInput.click();
             }
         });
+
+        // Reset form state function
+        function resetFormState() {
+            selectedFile = null;
+            fileInfo.style.display = 'none';
+            uploadProgress.style.display = 'none';
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<i class="fas fa-search" style="margin-right: 8px;"></i>Analyze & Generate Report';
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+            hideMessages();
+        }
     </script>
 </body>
 </html>
