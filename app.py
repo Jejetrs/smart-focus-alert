@@ -126,12 +126,12 @@ def init_mediapipe():
         return False
 
 def draw_landmarks(image, landmarks, land_mark, color):
-    """FIXED: Draw landmarks dengan improved visibility"""
+    """FIXED: Draw landmarks dengan reduced noise dan cleaner appearance"""
     height, width = image.shape[:2]
     for face in land_mark:
         point = landmarks.landmark[face]
         point_scale = ((int)(point.x * width), (int)(point.y * height))     
-        cv.circle(image, point_scale, 2, color, 1)
+        cv.circle(image, point_scale, 1, color, 1)
 
 def euclidean_distance(image, top, bottom):
     """Calculate euclidean distance between two points"""
@@ -211,16 +211,6 @@ def detect_drowsiness(frame, landmarks, speech_engine=None):
             377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
 
     try:
-        # FIXED: Draw landmarks dengan improved visibility seperti lokal version
-        draw_landmarks(frame, landmarks, FACE, COLOR_GREEN)
-        draw_landmarks(frame, landmarks, LEFT_EYE, COLOR_GREEN)
-        draw_landmarks(frame, landmarks, RIGHT_EYE, COLOR_GREEN)
-        draw_landmarks(frame, landmarks, LEFT_EYE_TOP_BOTTOM, COLOR_RED)
-        draw_landmarks(frame, landmarks, LEFT_EYE_LEFT_RIGHT, COLOR_RED)
-        draw_landmarks(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, COLOR_RED)
-        draw_landmarks(frame, landmarks, RIGHT_EYE_LEFT_RIGHT, COLOR_RED)
-        draw_landmarks(frame, landmarks, UPPER_LOWER_LIPS, COLOR_BLUE)
-        draw_landmarks(frame, landmarks, LEFT_RIGHT_LIPS, COLOR_BLUE)
 
         # Create mesh points for iris detection
         img_h, img_w = frame.shape[:2]
