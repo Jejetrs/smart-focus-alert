@@ -834,7 +834,7 @@
                 </a>
                 <div class="nav-links">
                     <a href="/" class="nav-link">Home</a>
-                    <a href="/webcam" class="nav-link active">Live Monitoring</a>
+                    <a href="/live" class="nav-link active">Live Monitoring</a>
                     <a href="/upload" class="nav-link">Upload</a>
                 </div>
             </div>
@@ -844,14 +844,14 @@
     <div class="main-container">
         <div class="page-header">
             <h1 class="page-title text-gradient">Live Focus Monitoring</h1>
-            <p class="page-subtitle">FIXED SYNCHRONIZED: Real-time display matches PDF report • 2-second alert reminders • Accurate duration tracking</p>
+            <p class="page-subtitle">Real-time focus detection with facial landmarks, automatic recording, and comprehensive reporting</p>
         </div>
 
         <div class="monitoring-status-card">
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="fas fa-chart-line"></i>
-                    Monitoring Status - SYNCHRONIZED
+                    Monitoring Status
                 </h2>
                 <div class="live-indicator" id="liveIndicator">
                     <div class="live-dot" id="liveDot"></div>
@@ -861,7 +861,7 @@
             
             <div class="status-display" id="currentStatus">
                 <span class="status-indicator"></span>
-                System Ready - FIXED SYNCHRONIZED: Real-time display matches PDF report data
+                System Ready - Click Start to begin monitoring with automatic
             </div>
 
             <div class="stats-grid">
@@ -894,10 +894,10 @@
                     
                     <div class="video-placeholder" id="videoPlaceholder">
                         <i class="fas fa-video"></i>
-                        <h3 style="margin-bottom: 12px;">FIXED SYNCHRONIZED Detection System</h3>
+                        <h3 style="margin-bottom: 12px;">Detection System</h3>
                         <p style="margin-bottom: 20px;">All duration tracking and alert synchronization issues resolved</p>
                         <div style="text-align: left; max-width: 500px; line-height: 1.6;">
-                            <div style="margin-bottom: 8px;">✅ <strong>Synchronized Display:</strong> Real-time matches PDF report</div>
+                            <div style="margin-bottom: 8px;">✅ <strong>Display:</strong> Real-time matches PDF report</div>
                             <div style="margin-bottom: 8px;">✅ <strong>Alert Reminders:</strong> Every 2 seconds for continued distraction</div>
                             <div style="margin-bottom: 8px;">✅ <strong>Accurate Duration:</strong> Consistent calculation across all displays</div>
                             <div style="margin-bottom: 8px;">✅ <strong>Speech Alerts:</strong> Repeated reminders for productivity</div>
@@ -909,7 +909,7 @@
                 <div class="controls-panel">
                     <button class="btn btn-primary" id="startBtn" onclick="startMonitoring()">
                         <i class="fas fa-play"></i>
-                        Start Synchronized Monitoring
+                        Start Monitoring
                     </button>
                     <button class="btn btn-danger" id="stopBtn" onclick="stopMonitoring()" disabled>
                         <i class="fas fa-stop"></i>
@@ -924,7 +924,7 @@
                 <div class="left-card">
                     <div class="sidebar-header">
                         <i class="fas fa-heartbeat"></i>
-                        System Health - SYNCHRONIZED
+                        System Health
                     </div>
                     
                     <div class="status-health" id="systemHealth">
@@ -934,7 +934,7 @@
                         </div>
                         <div class="health-item">
                             <span>Alert Reminders:</span>
-                            <span class="health-status ok" id="reminderHealth">2-Second Cycle</span>
+                            <span class="health-status ok" id="reminderHealth">5-Second Cycle</span>
                         </div>
                         <div class="health-item">
                             <span>Duration Accuracy:</span>
@@ -950,20 +950,15 @@
                 <div class="left-card">
                     <div class="sidebar-header">
                         <i class="fas fa-volume-up"></i>
-                        Alert Configuration - ENHANCED
+                        Alert Configuration
                     </div>
                     
-                    <label class="volume-label">Alert Volume:</label>
+                    <label class="volume-label">Choose volume level:</label>
                     <select class="volume-select" id="alertVolume">
                         <option value="0.3">Low</option>
                         <option value="0.6" selected>Medium</option>
                         <option value="1.0">High</option>
                     </select>
-                    
-                    <div style="margin-top: 16px; padding: 12px; background: var(--dark-bg); border-radius: 8px;">
-                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">Alert Frequency:</div>
-                        <div style="font-weight: 600; color: var(--primary-blue);">Every 2 seconds for continued distraction</div>
-                    </div>
                 </div>
 
                 <div class="left-card" style="display: none;" id="downloadsSection">
@@ -984,7 +979,7 @@
                         </div>
                         <div class="connection-text">
                             <div class="connection-title">All Synchronization Issues Fixed</div>
-                            <div class="connection-subtitle" id="connectionSubtitle">Real-time display synchronized with PDF data</div>
+                            <div class="connection-subtitle" id="connectionSubtitle">Real-time display with PDF data</div>
                         </div>
                     </div>
 
@@ -1002,7 +997,7 @@
                 <div class="sidebar-card">
                     <div class="sidebar-header">
                         <i class="fas fa-users"></i>
-                        Live Detection Details - SYNCHRONIZED
+                        Live Detection Details
                         <div class="alert-badge" id="detectionBadge" style="display: none;">
                             <i class="fas fa-exclamation-triangle"></i>
                             ALERT
@@ -1020,24 +1015,21 @@
                 <div class="sidebar-card">
                     <div class="sidebar-header">
                         <i class="fas fa-list"></i>
-                        Detection Thresholds & Reminders
+                        Detection Thresholds
                     </div>
                     
                     <div class="thresholds-grid">
                         <div class="threshold-item threshold-sleep">
                             <div class="threshold-label">Sleep</div>
                             <div class="threshold-time">10 seconds</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Then every 2s</div>
                         </div>
                         <div class="threshold-item threshold-yawning">
                             <div class="threshold-label">Yawning</div>
                             <div class="threshold-time">3.5 seconds</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Then every 2s</div>
                         </div>
                         <div class="threshold-item threshold-focus">
                             <div class="threshold-label">No Focus</div>
                             <div class="threshold-time">10 seconds</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Then every 2s</div>
                         </div>
                     </div>
                 </div>
@@ -1045,13 +1037,13 @@
                 <div class="sidebar-card">
                     <div class="sidebar-header">
                         <i class="fas fa-list"></i>
-                        Alert History - SYNCHRONIZED DURATIONS
+                        Alert History
                     </div>
                     
                     <div class="alert-history" id="alertHistory">
                         <div class="text-center" style="color: var(--text-secondary); padding: 20px;">
                             <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
-                            <p>No alerts yet - synchronized monitoring not started</p>
+                            <p>No alerts yet - monitoring not started</p>
                         </div>
                     </div>
                 </div>
@@ -1208,7 +1200,7 @@
                 element.className = `health-status ${status}`;
                 const statusText = {
                     sync: status === 'ok' ? 'Synchronized' : 'Error',
-                    reminder: status === 'ok' ? '2-Second Cycle' : 'Error',
+                    reminder: status === 'ok' ? '5-Second Cycle' : 'Error',
                     duration: status === 'ok' ? 'Consistent' : 'Error',
                     pdf: status === 'ok' ? 'Synchronized' : 'Error'
                 };
@@ -1331,7 +1323,7 @@
             
             if (audioEnabled) {
                 toggle.classList.remove('off');
-                statusText.textContent = '2-Second Reminder Alerts Enabled';
+                statusText.textContent = 'Reminder Alerts Enabled';
                 statusText.style.color = 'var(--success)';
             } else {
                 toggle.classList.add('off');
@@ -1717,11 +1709,6 @@
             };
             
             const message = baseMessages[alertType] || `Person ${personId} attention alert`;
-            
-            // FIXED SYNCHRONIZED: Add reminder indicator for continued productivity
-            if (category === 'reminder') {
-                return message + ' (Reminder)';
-            }
             
             return message;
         }
