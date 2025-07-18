@@ -648,7 +648,7 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
             return None
 
         fps = len(recording_frames) / actual_duration_seconds
-        fps = max(1.0, min(len(recording_frames) / actual_duration_seconds * 0.5, 10.0))  # lambat 2x
+        fps = max(20.0, min(fps, 30.0))  # Batasi antara 1 dan 30
         print(f"Calculated FPS: {fps:.2f} for duration {actual_duration_seconds:.2f}s")
 
         height, width = recording_frames[0].shape[:2]
@@ -659,11 +659,12 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
             print(f"Error: Could not open video writer for {output_path}")
             return None
 
+        frame_delay = 3  # tampilkan frame sama 3 kali
+
         for frame in recording_frames:
             if frame is not None and frame.size > 0:
-                if frame.shape[:2] != (height, width):
-                    frame = cv.resize(frame, (width, height))
-                out.write(frame)
+                for _ in range(frame_delay):
+                    out.write(frame)
 
         out.release()
 
