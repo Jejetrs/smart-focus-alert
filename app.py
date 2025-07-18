@@ -124,7 +124,7 @@ def init_mediapipe():
         return False
 
 def draw_landmarks(image, landmarks, land_mark, color):
-    """FIXED: Draw landmarks dengan improved visibility"""
+    """Draw landmarks on the image for a single face"""
     height, width = image.shape[:2]
     for face in land_mark:
         point = landmarks.landmark[face]
@@ -139,6 +139,7 @@ def euclidean_distance(image, top, bottom):
     distance = dis.euclidean(point1, point2)
     return distance
 
+
 def get_aspect_ratio(image, landmarks, top_bottom, left_right):
     """Calculate aspect ratio based on landmarks"""
     top = landmarks.landmark[top_bottom[0]]
@@ -148,10 +149,6 @@ def get_aspect_ratio(image, landmarks, top_bottom, left_right):
     left = landmarks.landmark[left_right[0]]
     right = landmarks.landmark[left_right[1]]
     left_right_dis = euclidean_distance(image, left, right)
-    
-    # Handle division by zero untuk Railway
-    if top_bottom_dis == 0:
-        return 5.0  # Default to closed eyes ratio
     
     aspect_ratio = left_right_dis / top_bottom_dis
     return aspect_ratio
@@ -183,7 +180,7 @@ def check_iris_in_middle(left_eye_points, left_iris_points, right_eye_points, ri
             and abs(right_iris_midpoint[0] - right_eye_midpoint[0]) <= deviation_threshold_horizontal)
 
 def detect_drowsiness(frame, landmarks, speech_engine=None):
-    """FIXED: Detect drowsiness dengan improved landmark visualization"""
+    """Detect drowsiness and attention state based on eye aspect ratio and other metrics"""
     COLOR_RED = (0, 0, 255)
     COLOR_BLUE = (255, 0, 0)
     COLOR_GREEN = (0, 255, 0)
@@ -204,116 +201,77 @@ def detect_drowsiness(frame, landmarks, speech_engine=None):
     UPPER_LOWER_LIPS = [13, 14]
     LEFT_RIGHT_LIPS = [78, 308]
 
-    # FIXED: Face outline landmarks untuk improved visibility
-    FACE = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400,
-            377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
+    # Create mesh points for iris detection
+    img_h, img_w = frame.shape[:2]
+    mesh_points = []    
+    for p in landmarks.landmark:
+        x = int(p.x * img_w)
+        y = int(p.y * img_h)
+        mesh_points.append((x, y))
+    mesh_points = np.array(mesh_points)            
+    
+    left_eye_points = mesh_points[LEFT_EYE]
+    right_eye_points = mesh_points[RIGHT_EYE]
+    left_iris_points = mesh_points[LEFT_IRIS]
+    right_iris_points = mesh_points[RIGHT_IRIS]
 
-    try:
-        # FIXED: Draw landmarks dengan improved visibility seperti lokal version
-        draw_landmarks(frame, landmarks, FACE, COLOR_GREEN)
-        draw_landmarks(frame, landmarks, LEFT_EYE, COLOR_GREEN)
-        draw_landmarks(frame, landmarks, RIGHT_EYE, COLOR_GREEN)
-        draw_landmarks(frame, landmarks, LEFT_EYE_TOP_BOTTOM, COLOR_RED)
-        draw_landmarks(frame, landmarks, LEFT_EYE_LEFT_RIGHT, COLOR_RED)
-        draw_landmarks(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, COLOR_RED)
-        draw_landmarks(frame, landmarks, RIGHT_EYE_LEFT_RIGHT, COLOR_RED)
-        draw_landmarks(frame, landmarks, UPPER_LOWER_LIPS, COLOR_BLUE)
-        draw_landmarks(frame, landmarks, LEFT_RIGHT_LIPS, COLOR_BLUE)
-
-        # Create mesh points for iris detection
-        img_h, img_w = frame.shape[:2]
-        mesh_points = []    
-        for p in landmarks.landmark:
-            x = int(p.x * img_w)
-            y = int(p.y * img_h)
-            mesh_points.append((x, y))
-        mesh_points = np.array(mesh_points)            
-        
-        left_eye_points = mesh_points[LEFT_EYE]
-        right_eye_points = mesh_points[RIGHT_EYE]
-        left_iris_points = mesh_points[LEFT_IRIS]
-        right_iris_points = mesh_points[RIGHT_IRIS]
-
-        # FIXED: Draw iris circles dengan error handling dan reduced noise
-        try:
-            (l_cx, l_cy), l_radius = cv.minEnclosingCircle(left_iris_points)
-            (r_cx, r_cy), r_radius = cv.minEnclosingCircle(right_iris_points)
-            center_left = np.array([l_cx, l_cy], dtype=np.int32)
-            center_right = np.array([r_cx, r_cy], dtype=np.int32)
-            
-            # FIXED: Reduced circle thickness untuk less noise
-            cv.circle(frame, center_left, int(l_radius), COLOR_MAGENTA, 1, cv.LINE_AA)
-            cv.circle(frame, center_right, int(r_radius), COLOR_MAGENTA, 1, cv.LINE_AA)
-        except:
-            pass
-
-        # Detect closed eyes
-        ratio_left_eye = get_aspect_ratio(frame, landmarks, LEFT_EYE_TOP_BOTTOM, LEFT_EYE_LEFT_RIGHT)
-        ratio_right_eye = get_aspect_ratio(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, RIGHT_EYE_LEFT_RIGHT)
-        eye_ratio = (ratio_left_eye + ratio_right_eye) / 2
-        
-        # Detect yawning
-        ratio_lips = get_aspect_ratio(frame, landmarks, UPPER_LOWER_LIPS, LEFT_RIGHT_LIPS)
-        
-        # Check if iris is focused (looking at center/screen)
-        iris_focused = check_iris_in_middle(left_eye_points, left_iris_points, right_eye_points, right_iris_points)
-        
-        # Determine state based on conditions
-        eyes_closed = eye_ratio > 5.0
-        yawning = ratio_lips < 1.8
-        not_focused = not iris_focused
-        
-        # State priority: SLEEPING > YAWNING > NOT FOCUSED > FOCUSED
-        if eyes_closed:
-            state = "SLEEPING"
-        elif yawning:
-            state = "YAWNING"
-        elif not_focused:
-            state = "NOT FOCUSED"
-        else:
-            state = "FOCUSED"
-        
-        status = {
-            "eyes_closed": eyes_closed,
-            "yawning": yawning,
-            "not_focused": not_focused,
-            "focused": iris_focused,
-            "state": state
-        }
-        
-        return status, state
-    except Exception as e:
-        print(f"Drowsiness detection error: {str(e)}")
-        return {"state": "FOCUSED"}, "FOCUSED"
+    # Detect closed eyes
+    ratio_left_eye = get_aspect_ratio(frame, landmarks, LEFT_EYE_TOP_BOTTOM, LEFT_EYE_LEFT_RIGHT)
+    ratio_right_eye = get_aspect_ratio(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, RIGHT_EYE_LEFT_RIGHT)
+    eye_ratio = (ratio_left_eye + ratio_right_eye) / 2
+    
+    # Detect yawning
+    ratio_lips = get_aspect_ratio(frame, landmarks, UPPER_LOWER_LIPS, LEFT_RIGHT_LIPS)
+    
+    # Check if iris is focused (looking at center/screen)
+    iris_focused = check_iris_in_middle(left_eye_points, left_iris_points, right_eye_points, right_iris_points)
+    
+    # Determine state based on conditions
+    eyes_closed = eye_ratio > 5.0
+    yawning = ratio_lips < 1.8
+    not_focused = not iris_focused
+    
+    # State priority: SLEEPING > YAWNING > NOT FOCUSED > FOCUSED
+    if eyes_closed:
+        state = "SLEEPING"
+    elif yawning:
+        state = "YAWNING"
+    elif not_focused:
+        state = "NOT FOCUSED"
+    else:
+        state = "FOCUSED"
+    
+    status = {
+        "eyes_closed": eyes_closed,
+        "yawning": yawning,
+        "not_focused": not_focused,
+        "focused": iris_focused,
+        "state": state
+    }
+    
+    return status, state
 
 def detect_persons_with_attention(image, mode="image"):
-    """FIXED: Detect persons dengan improved visualization seperti lokal version"""
-    global live_monitoring_active, session_data, person_state_timers, person_current_state, last_alert_time
-    global face_detection, face_mesh, person_distraction_sessions
-    
-    # Check if MediaPipe is initialized
-    if face_detection is None or face_mesh is None:
-        if not init_mediapipe():
-            print("MediaPipe not available, returning empty detections")
-            return image, []
+    """Detect persons in image or video frame with attention status"""
+    detector = mp.solutions.face_detection.FaceDetection(
+        model_selection=1,
+        min_detection_confidence=0.5
+    )
 
-    rgb_image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+    face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=(mode == "image"),
+        max_num_faces=10,
+        refine_landmarks=True,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
     
-    try:
-        detection_results = face_detection.process(rgb_image)
-        mesh_results = face_mesh.process(rgb_image)
-    except Exception as e:
-        print(f"MediaPipe processing error: {str(e)}")
-        return image, []
+    rgb_image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+    detection_results = detector.process(rgb_image)
+    mesh_results = face_mesh.process(rgb_image)
     
     detections = []
     ih, iw, _ = image.shape
-    current_time = time.time()
-    
-    # Check monitoring status dengan thread safety
-    with monitoring_lock:
-        is_monitoring_active = live_monitoring_active
-        current_session_data = session_data.copy() if session_data else None
     
     if detection_results.detections:
         for i, detection in enumerate(detection_results.detections):
@@ -321,15 +279,15 @@ def detect_persons_with_attention(image, mode="image"):
             x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), \
                          int(bboxC.width * iw), int(bboxC.height * ih)
             
-            # Ensure bounding box is within image bounds
             x = max(0, x)
             y = max(0, y)
             w = min(w, iw - x)
             h = min(h, ih - y)
             
+            cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
             confidence_score = detection.score[0]
             
-            # Default attention status
             attention_status = {
                 "eyes_closed": False,
                 "yawning": False,
@@ -337,11 +295,9 @@ def detect_persons_with_attention(image, mode="image"):
                 "state": "FOCUSED"
             }
             
-            # Match detection dengan face mesh
             matched_face_idx = -1
             if mesh_results.multi_face_landmarks:
                 for face_idx, face_landmarks in enumerate(mesh_results.multi_face_landmarks):
-                    # Calculate face mesh bounding box
                     min_x, min_y = float('inf'), float('inf')
                     max_x, max_y = 0, 0
                     
@@ -352,7 +308,6 @@ def detect_persons_with_attention(image, mode="image"):
                         max_x = max(max_x, landmark_x)
                         max_y = max(max_y, landmark_y)
                     
-                    # Check if detection dan mesh overlap
                     mesh_center_x = (min_x + max_x) // 2
                     mesh_center_y = (min_y + max_y) // 2
                     det_center_x = x + w // 2
@@ -363,7 +318,6 @@ def detect_persons_with_attention(image, mode="image"):
                         matched_face_idx = face_idx
                         break
             
-            # Analyze attention jika face mesh matched
             if matched_face_idx != -1:
                 attention_status, state = detect_drowsiness(
                     image, 
@@ -372,171 +326,51 @@ def detect_persons_with_attention(image, mode="image"):
                 )
             
             status_text = attention_status.get("state", "FOCUSED")
-            person_key = f"person_{i+1}"
             
-            # FIXED: Enhanced duration tracking untuk consistent calculation
-            duration = 0
-            if mode == "video" and is_monitoring_active:
-                with monitoring_lock:
-                    # Initialize person tracking
-                    if person_key not in person_state_timers:
-                        person_state_timers[person_key] = {}
-                        person_current_state[person_key] = None
-                        last_alert_time[person_key] = 0
-                        person_distraction_sessions[person_key] = {}
-                    
-                    # FIXED: Improved state tracking untuk continuous sessions
-                    if person_current_state[person_key] != status_text:
-                        # State changed - close previous session and start new one
-                        if person_current_state[person_key] and person_current_state[person_key] in DISTRACTION_THRESHOLDS:
-                            # Close previous distraction session
-                            prev_state = person_current_state[person_key]
-                            if prev_state in person_distraction_sessions[person_key]:
-                                session_duration = current_time - person_distraction_sessions[person_key][prev_state]['start_time']
-                                person_distraction_sessions[person_key][prev_state]['total_duration'] += session_duration
-                                del person_distraction_sessions[person_key][prev_state]
-                        
-                        # Start new session
-                        person_current_state[person_key] = status_text
-                        person_state_timers[person_key][status_text] = current_time
-                        
-                        # Start new distraction session if needed
-                        if status_text in DISTRACTION_THRESHOLDS:
-                            if status_text not in person_distraction_sessions[person_key]:
-                                person_distraction_sessions[person_key][status_text] = {
-                                    'start_time': current_time,
-                                    'total_duration': 0,
-                                    'last_alert': 0
-                                }
-                    else:
-                        # Same state continues
-                        if status_text not in person_state_timers[person_key]:
-                            person_state_timers[person_key][status_text] = current_time
-                    
-                    # Calculate duration untuk current state
-                    if status_text in person_state_timers[person_key]:
-                        duration = current_time - person_state_timers[person_key][status_text]
+            # Draw status info
+            info_y_start = y + h + 10
+            box_padding = 10
+            line_height = 20
+            box_height = 4 * line_height
             
-            # FIXED: Enhanced visualization untuk monitoring seperti lokal version
-            if mode == "video" and is_monitoring_active:
-                status_colors = {
-                    "FOCUSED": (0, 255, 0),
-                    "NOT FOCUSED": (0, 165, 255),
-                    "YAWNING": (0, 255, 255),
-                    "SLEEPING": (0, 0, 255)
-                }
-                
-                main_color = status_colors.get(status_text, (0, 255, 0))
-                cv.rectangle(image, (x, y), (x + w, y + h), main_color, 3)
-                
-                # FIXED: Timer display dengan improved format
-                if status_text in DISTRACTION_THRESHOLDS:
-                    threshold = DISTRACTION_THRESHOLDS[status_text]
-                    timer_text = f"Person {i+1}: {status_text} ({duration:.1f}s/{threshold}s)"
-                else:
-                    timer_text = f"Person {i+1}: {status_text}"
-                
-                # FIXED: Draw text background dengan improved visibility
-                font = cv.FONT_HERSHEY_SIMPLEX
-                font_scale = 0.7
-                thickness = 2
-                (text_width, text_height), baseline = cv.getTextSize(timer_text, font, font_scale, thickness)
-                
-                text_y = y - 10
-                if text_y < text_height + 10:
-                    text_y = y + h + text_height + 10
-                
-                # Semi-transparent background
-                overlay = image.copy()
-                cv.rectangle(overlay, (x, text_y - text_height - 5), (x + text_width + 10, text_y + 5), (0, 0, 0), -1)
-                cv.addWeighted(overlay, 0.7, image, 0.3, 0, image)
-                
-                cv.putText(image, timer_text, (x + 5, text_y), font, font_scale, main_color, thickness)
-            else:
-                # FIXED: Static detection display dengan improved layout seperti lokal version
-                cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                
-                # FIXED: Information overlay - menggunakan layout dari lokal version
-                info_y_start = y + h + 10
-                box_padding = 10
-                line_height = 20
-                box_height = 4 * line_height
-                
-                overlay = image.copy()
-                cv.rectangle(overlay, 
-                            (x - box_padding, info_y_start - box_padding), 
-                            (x + w + box_padding, info_y_start + box_height), 
-                            (0, 0, 0), -1)
-                cv.addWeighted(overlay, 0.6, image, 0.4, 0, image)
-                
-                font = cv.FONT_HERSHEY_SIMPLEX
-                font_scale = 0.5
-                font_color = (255, 255, 255)
-                thickness = 1
-                
-                cv.putText(image, f"Person {i+1}", (x, info_y_start), 
-                        font, font_scale, (50, 205, 50), thickness+1)
-                cv.putText(image, f"Confidence: {confidence_score*100:.2f}%", 
-                        (x, info_y_start + line_height), font, font_scale, font_color, thickness)
-                cv.putText(image, f"Position: x:{x}, y:{y} Size: w:{w}, h:{h}", 
-                        (x, info_y_start + 2*line_height), font, font_scale, font_color, thickness)
-                
-                status_color = {
-                    "FOCUSED": (0, 255, 0),
-                    "NOT FOCUSED": (255, 165, 0),
-                    "YAWNING": (255, 255, 0),
-                    "SLEEPING": (0, 0, 255)
-                }
-                color = status_color.get(status_text, (0, 255, 0))
-                
-                cv.putText(image, f"Status: {status_text}", 
-                        (x, info_y_start + 3*line_height), font, font_scale, color, thickness)
-
-            # FIXED: Alert handling dengan improved timing dan consistency
-            should_alert = False
-            alert_message = ""
+            overlay = image.copy()
+            cv.rectangle(overlay, 
+                        (x - box_padding, info_y_start - box_padding), 
+                        (x + w + box_padding, info_y_start + box_height), 
+                        (0, 0, 0), -1)
+            cv.addWeighted(overlay, 0.6, image, 0.4, 0, image)
             
-            if (mode == "video" and is_monitoring_active and status_text in DISTRACTION_THRESHOLDS and 
-                person_key in person_state_timers and status_text in person_state_timers[person_key]):
-                
-                if duration >= DISTRACTION_THRESHOLDS[status_text]:
-                    alert_cooldown = 5  # 5 second cooldown
-                    with monitoring_lock:
-                        if current_time - last_alert_time.get(person_key, 0) >= alert_cooldown:
-                            should_alert = True
-                            last_alert_time[person_key] = current_time
-                            
-                            # Generate alert message
-                            if status_text == 'SLEEPING':
-                                alert_message = f'Person {i+1} is sleeping - please wake up!'
-                            elif status_text == 'YAWNING':
-                                alert_message = f'Person {i+1} is yawning - please take a rest!'
-                            elif status_text == 'NOT FOCUSED':
-                                alert_message = f'Person {i+1} is not focused - please focus on screen!'
-                            
-                            # FIXED: Store alert in session data dengan consistent format
-                            if live_monitoring_active and session_data and session_data.get('start_time'):
-                                alert_entry = {
-                                    'timestamp': datetime.now().isoformat(),
-                                    'person': f"Person {i+1}",
-                                    'detection': status_text,
-                                    'message': alert_message,
-                                    'duration': int(duration)
-                                }
-                                session_data['alerts'].append(alert_entry)
-                                print(f"FIXED: Alert added - {alert_message} (Total alerts: {len(session_data['alerts'])})")
+            font = cv.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            font_color = (255, 255, 255)
+            thickness = 1
             
-            # Save detected face - Railway optimized path
+            cv.putText(image, f"Person {i+1}", (x, info_y_start), 
+                    font, font_scale, (50, 205, 50), thickness+1)
+            cv.putText(image, f"Confidence: {confidence_score*100:.2f}%", 
+                    (x, info_y_start + line_height), font, font_scale, font_color, thickness)
+            cv.putText(image, f"Position: x:{x}, y:{y} Size: w:{w}, h:{h}", 
+                    (x, info_y_start + 2*line_height), font, font_scale, font_color, thickness)
+            
+            status_color = {
+                "FOCUSED": (0, 255, 0),
+                "NOT FOCUSED": (255, 165, 0),
+                "YAWNING": (255, 255, 0),
+                "SLEEPING": (0, 0, 255)
+            }
+            color = status_color.get(status_text, (0, 255, 0))
+            
+            cv.putText(image, f"Status: {status_text}", 
+                    (x, info_y_start + 3*line_height), font, font_scale, color, thickness)
+            
+            # Extract face region
             face_img = image[y:y+h, x:x+w]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             face_filename = f"person_{i+1}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
             face_path = os.path.join(application.config['DETECTED_FOLDER'], face_filename)
             
             if face_img.size > 0:
-                try:
-                    cv.imwrite(face_path, face_img)
-                except Exception as e:
-                    print(f"Error saving face image: {str(e)}")
+                cv.imwrite(face_path, face_img)
             
             detections.append({
                 "id": i+1,
@@ -544,11 +378,10 @@ def detect_persons_with_attention(image, mode="image"):
                 "bbox": [x, y, w, h],
                 "image_path": f"/static/detected/{face_filename}",
                 "status": status_text,
-                "timestamp": datetime.now().isoformat(),
-                "duration": duration if mode == "video" else 0
+                "timestamp": datetime.now().isoformat()
             })
     
-    # Display detection count
+    # Add detection count
     if detections:
         cv.putText(image, f"Total persons detected: {len(detections)}", 
                   (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
