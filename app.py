@@ -1237,24 +1237,16 @@ def process_video_file(video_path):
 def index():
     return render_template('index.html')
 
+# Perbaikan untuk route /upload agar mendukung JSON response dan face crop display
 @application.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
-        # Check if request is AJAX (JSON expected)
-        is_ajax = request.headers.get('Content-Type') == 'application/json' or \
-                  request.headers.get('Accept') == 'application/json' or \
-                  'application/json' in request.headers.get('Accept', '')
-        
         if 'file' not in request.files:
-            if is_ajax:
-                return jsonify({"error": "No file part"}), 400
             return render_template('upload.html', error='No file part')
         
         file = request.files['file']
         
         if file.filename == '':
-            if is_ajax:
-                return jsonify({"error": "No selected file"}), 400
             return render_template('upload.html', error='No selected file')
         
         if file:
@@ -1276,8 +1268,6 @@ def upload():
                     image = cv.imread(file_path)
                     if image is None:
                         error_msg = 'Failed to load image file'
-                        if is_ajax:
-                            return jsonify({"error": error_msg}), 400
                         return render_template('upload.html', error=error_msg)
                     
                     processed_image, detections = detect_persons_with_attention(image)
@@ -1328,31 +1318,15 @@ def upload():
                         result["pdf_report"] = f"/static/reports/{pdf_filename}"
                 else:
                     error_msg = 'Unsupported file format'
-                    if is_ajax:
-                        return jsonify({"error": error_msg}), 400
                     return render_template('upload.html', error=error_msg)
                 
-                # Enhanced detection information
-                if result["detections"]:
-                    for detection in result["detections"]:
-                        # Ensure image_path is properly set for face crops
-                        if 'image_path' not in detection or not detection['image_path']:
-                            # Generate placeholder path
-                            detection['image_path'] = f"/static/detected/person_{detection['id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-                
-                # Return JSON for AJAX requests
-                if is_ajax:
-                    return jsonify(result)
-                
-                # Return HTML template for traditional form submission
+                # Return HTML template for form submission - result.html will show face crops
                 return render_template('result.html', result=result)
                 
             except Exception as e:
                 print(f"Error processing upload: {str(e)}")
                 traceback.print_exc()
                 error_msg = f'Failed to process file: {str(e)}'
-                if is_ajax:
-                    return jsonify({"error": error_msg}), 500
                 return render_template('upload.html', error=error_msg)
     
     # GET request - show upload form
