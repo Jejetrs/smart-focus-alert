@@ -68,7 +68,7 @@
         }
 
         .upload-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -90,14 +90,6 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-        }
-
-        .what-you-get {
-            background: var(--glass-bg);
-            border-radius: 16px;
-            padding: 24px;
-            margin-top: 20px;
-            grid-column: 1;
         }
 
         .main-content {
@@ -175,6 +167,7 @@
             border: none;
             cursor: pointer;
             font-size: 14px;
+            gap: 8px;
         }
 
         .btn-primary {
@@ -206,8 +199,8 @@
             transition: all 0.3s ease;
             cursor: pointer;
             background: rgba(15, 23, 42, 0.3);
-            min-height: 530px;
-            min-width: 700px ;
+            min-height: 450px;
+            min-width: 700px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -417,6 +410,226 @@
             color: var(--success);
         }
 
+        /* ENHANCED: Result display styles */
+        .result-container {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-header {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--primary-blue);
+        }
+
+        .result-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .result-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        .processed-media {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .processed-image, .processed-video {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .download-section {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .face-detections {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .detection-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .detection-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .detection-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid var(--info);
+            transition: all 0.3s ease;
+        }
+
+        .detection-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .detection-card.focused {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .detection-card.not-focused {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .detection-card.yawning {
+            border-left-color: #eab308;
+            background: rgba(234, 179, 8, 0.05);
+        }
+
+        .detection-card.sleeping {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .detection-content {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .face-crop {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid var(--glass-border);
+        }
+
+        .detection-info {
+            flex: 1;
+        }
+
+        .person-id {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .detection-status {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+        .status-focused {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-not-focused {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .status-yawning {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+        }
+
+        .status-sleeping {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .detection-details {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .empty-detections {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-detections i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -441,6 +654,10 @@
                 grid-template-columns: 1fr;
             }
             
+            .result-content {
+                grid-template-columns: 1fr;
+            }
+            
             .output-sections {
                 grid-template-columns: 1fr;
             }
@@ -461,9 +678,20 @@
             .file-drop-zone { 
                 padding: 40px 20px;
                 min-height: 300px;
+                min-width: auto;
             }
             
             .file-preview-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .result-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .detection-content {
                 flex-direction: column;
                 align-items: center;
                 text-align: center;
@@ -490,157 +718,211 @@
     </nav>
 
     <div class="upload-container">
-        <!-- Header -->
-        <div class="text-center fade-in">
-            <h1 class="title-lg text-gradient">Upload & Analyze</h1>
-            <p style="color: var(--text-secondary);">Upload images or videos to analyze focus patterns with AI-powered detection.</p>
-        </div>
+        <!-- UPLOAD FORM SECTION -->
+        <div id="uploadSection">
+            <!-- Header -->
+            <div class="text-center fade-in">
+                <h1 class="title-lg text-gradient">Upload & Analyze</h1>
+                <p style="color: var(--text-secondary);">Upload images or videos to analyze focus patterns with AI-powered face detection and crop extraction.</p>
+            </div>
 
-        <!-- Main Layout -->
-        <div class="main-layout">
-            <!-- Main Content Grid -->
-            <div class="main-content">
-                <!-- Left Column -->
-                <div class="left-column">
-                    <!-- Upload Form -->
-                    <form id="uploadForm" method="POST" enctype="multipart/form-data" class="slide-in">
-                        <!-- File Drop Zone -->
-                        <div class="file-drop-zone" id="dropZone">
-                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 8px;" class="text-gradient">Drop your files here or click to browse</h3>
-                            <input type="file" id="fileInput" name="file" accept="image/*,video/*" style="display: none;">
-                            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
-                                <i class="fas fa-folder-open" style="margin-right: 8px;"></i>
-                                Browse file
-                            </button>
-                            
-                            <div class="supported-formats">
-                                <span class="format-badge">JPG</span>
-                                <span class="format-badge">PNG</span>
-                                <span class="format-badge">MP4</span>
-                                <span class="format-badge">AVI</span>
-                                <span class="format-badge">MOV</span>
-                                <span class="format-badge">MKV</span>
+            <!-- Main Layout -->
+            <div class="main-layout">
+                <!-- Main Content Grid -->
+                <div class="main-content">
+                    <!-- Left Column -->
+                    <div class="left-column">
+                        <!-- Upload Form -->
+                        <form id="uploadForm" method="POST" enctype="multipart/form-data" class="slide-in">
+                            <!-- File Drop Zone -->
+                            <div class="file-drop-zone" id="dropZone">
+                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 8px;" class="text-gradient">Drop your files here or click to browse</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 20px;">Enhanced detection with face crop extraction</p>
+                                <input type="file" id="fileInput" name="file" accept="image/*,video/*" style="display: none;">
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fas fa-folder-open"></i>
+                                    Browse file
+                                </button>
+                                
+                                <div class="supported-formats">
+                                    <span class="format-badge">JPG</span>
+                                    <span class="format-badge">PNG</span>
+                                    <span class="format-badge">MP4</span>
+                                    <span class="format-badge">AVI</span>
+                                    <span class="format-badge">MOV</span>
+                                    <span class="format-badge">MKV</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Upload Progress -->
-                        <div class="upload-progress" id="uploadProgress">
-                            <div class="flex justify-between items-center" style="margin-bottom: 8px;">
-                                <span style="color: var(--text-secondary);">Processing & Analyzing...</span>
-                                <span style="color: var(--text-secondary);" id="progressPercent">0%</span>
+                            <!-- Upload Progress -->
+                            <div class="upload-progress" id="uploadProgress">
+                                <div class="flex justify-between items-center" style="margin-bottom: 8px;">
+                                    <span style="color: var(--text-secondary);">Processing & Analyzing Faces...</span>
+                                    <span style="color: var(--text-secondary);" id="progressPercent">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
                             </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progressFill"></div>
-                            </div>
-                        </div>
 
-                        <!-- File Info -->
-                        <div class="file-info" id="fileInfo">
-                            <h4 style="font-weight: 600; margin-bottom: 16px; color: var(--primary-blue);">Selected File</h4>
-                            <div class="file-preview-container">
-                                <div class="file-preview" id="filePreviewContainer">
-                                    <img id="filePreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: none;" alt="File preview">
-                                    <div id="videoPreview" style="display: none;">
-                                        <i class="fas fa-video" style="font-size: 3rem; color: var(--info);"></i>
+                            <!-- File Info -->
+                            <div class="file-info" id="fileInfo">
+                                <h4 style="font-weight: 600; margin-bottom: 16px; color: var(--primary-blue);">Selected File</h4>
+                                <div class="file-preview-container">
+                                    <div class="file-preview" id="filePreviewContainer">
+                                        <img id="filePreview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: none;" alt="File preview">
+                                        <div id="videoPreview" style="display: none;">
+                                            <i class="fas fa-video" style="font-size: 3rem; color: var(--info);"></i>
+                                        </div>
+                                    </div>
+                                    <div class="file-details">
+                                        <p><strong>Name:</strong> <span id="fileName"></span></p>
+                                        <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                                        <p><strong>Type:</strong> <span id="fileType"></span></p>
                                     </div>
                                 </div>
-                                <div class="file-details">
-                                    <p><strong>Name :</strong> <span id="fileName"></span></p>
-                                    <p><strong>Size :</strong> <span id="fileSize"></span></p>
-                                    <p><strong>Type :</strong> <span id="fileType"></span></p>
+                                
+                                <button type="submit" class="btn btn-primary" id="analyzeBtn" disabled style="width: 100%; margin-top: 16px;">
+                                    <i class="fas fa-search"></i>
+                                    Analyze & Extract Face Crops
+                                </button>
+                            </div>
+
+                            <!-- Messages -->
+                            <div class="message message-error" id="errorMessage">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span id="errorText"></span>
+                            </div>
+
+                            <div class="message message-success" id="successMessage">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="successText"></span>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="right-column">
+                        <!-- Quick Tips -->
+                        <div class="quick-tips slide-in">
+                            <h3 style="color: var(--warning); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                                <i class="fas fa-lightbulb"></i>
+                                Detection Tips
+                            </h3>
+                            
+                            <div class="tip-item">
+                                <i class="fas fa-check tip-icon"></i>
+                                <div class="tip-content">
+                                    <h4>Good Lighting</h4>
+                                    <p>Ensure faces are well-lit and clearly visible for accurate landmark detection</p>
                                 </div>
                             </div>
                             
-                            <button type="submit" class="btn btn-primary" id="analyzeBtn" disabled style="width: 100%; margin-top: 16px;">
-                                <i class="fas fa-search" style="margin-right: 8px;"></i>
-                                Analyze & Generate Report
-                            </button>
+                            <div class="tip-item">
+                                <i class="fas fa-check tip-icon"></i>
+                                <div class="tip-content">
+                                    <h4>Front-facing</h4>
+                                    <p>Faces should be facing the camera directly for optimal iris tracking</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tip-item">
+                                <i class="fas fa-check tip-icon"></i>
+                                <div class="tip-content">
+                                    <h4>Clear Images</h4>
+                                    <p>Use high-resolution images for better facial landmark precision and face cropping</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tip-item">
+                                <i class="fas fa-check tip-icon"></i>
+                                <div class="tip-content">
+                                    <h4>File Size</h4>
+                                    <p>Keep files under 100MB for faster processing and face crop generation</p>
+                                </div>
+                            </div>
                         </div>
-
-                        <!-- Messages -->
-                        <div class="message message-error" id="errorMessage">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span id="errorText"></span>
-                        </div>
-
-                        <div class="message message-success" id="successMessage">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="successText"></span>
-                        </div>
-                    </form>
+                    </div>
                 </div>
 
-                <!-- Right Column -->
-                <div class="right-column">
-                    <!-- Quick Tips -->
-                    <div class="quick-tips slide-in">
-                        <h3 style="color: var(--warning); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
-                            <i class="fas fa-lightbulb"></i>
-                            Quick Tips
-                        </h3>
-                        
-                        <div class="tip-item">
-                            <i class="fas fa-check tip-icon"></i>
-                            <div class="tip-content">
-                                <h4>Good Lighting</h4>
-                                <p>Ensure faces are well-lit and clearly visible for accurate landmark detection</p>
-                            </div>
+                <!-- What You'll Get - Full Width Below -->
+                <div class="what-you-get slide-in">
+                    <h3>
+                        <i class="fas fa-bookmark"></i>
+                        What You'll Get ?
+                    </h3>
+                    
+                    <div class="output-sections">
+                        <div class="output-section">
+                            <h4>Enhanced Face Detection</h4>
+                            <ul class="output-list">
+                                <li><i class="fas fa-check"></i> Individual face crop extraction</li>
+                                <li><i class="fas fa-check"></i> Focus state detection per person</li>
+                                <li><i class="fas fa-check"></i> Facial landmark overlays</li>
+                                <li><i class="fas fa-check"></i> Detection confidence scores</li>
+                            </ul>
                         </div>
                         
-                        <div class="tip-item">
-                            <i class="fas fa-check tip-icon"></i>
-                            <div class="tip-content">
-                                <h4>Front-facing</h4>
-                                <p>Faces should be facing the camera directly for optimal iris tracking</p>
-                            </div>
-                        </div>
-                        
-                        <div class="tip-item">
-                            <i class="fas fa-check tip-icon"></i>
-                            <div class="tip-content">
-                                <h4>Clear Images:</h4>
-                                <p>Use high-resolution images for better facial landmark precision</p>
-                            </div>
-                        </div>
-                        
-                        <div class="tip-item">
-                            <i class="fas fa-check tip-icon"></i>
-                            <div class="tip-content">
-                                <h4>File Size:</h4>
-                                <p>Keep files under 100MB for faster processing and report generation</p>
-                            </div>
+                        <div class="output-section">
+                            <h4>Comprehensive Analysis</h4>
+                            <ul class="output-list">
+                                <li><i class="fas fa-check"></i> PDF report with face crops</li>
+                                <li><i class="fas fa-check"></i> Focus accuracy statistics</li>
+                                <li><i class="fas fa-check"></i> Individual detection results</li>
+                                <li><i class="fas fa-check"></i> Professional formatting</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- What You'll Get - Full Width Below -->
-            <div class="what-you-get slide-in">
-                <h3>
-                    <i class="fas fa-bookmark"></i>
-                    What You'll Get ?
-                </h3>
+        <!-- RESULT SECTION -->
+        <div class="result-container" id="resultSection">
+            <div class="result-header fade-in">
+                <div class="result-title" id="resultTitle">Analysis Complete</div>
+                <div class="result-subtitle" id="resultSubtitle">Face detection and focus analysis completed successfully</div>
                 
-                <div class="output-sections">
-                    <div class="output-section">
-                        <h4>Processed Media</h4>
-                        <ul class="output-list">
-                            <li><i class="fas fa-check"></i> Facial landmark overlays</li>
-                            <li><i class="fas fa-check"></i> Detection state indicators</li>
-                            <li><i class="fas fa-check"></i> Bounding box annotations</li>
-                            <li><i class="fas fa-check"></i> Individual face crops</li>
-                        </ul>
+                <div class="result-stats" id="resultStats">
+                    <!-- Stats will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="result-content">
+                <!-- Processed Media -->
+                <div class="processed-media fade-in">
+                    <h3 style="color: var(--primary-blue); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-image"></i>
+                        Processed Media
+                    </h3>
+                    
+                    <div id="processedMediaContainer">
+                        <!-- Processed image/video will be inserted here -->
+                    </div>
+
+                    <div class="download-section">
+                        <button class="btn btn-secondary" id="downloadPdfBtn" style="display: none;">
+                            <i class="fas fa-file-pdf"></i>
+                            Download PDF Report
+                        </button>
+                        <button class="btn btn-primary" id="backToUploadBtn">
+                            <i class="fas fa-upload"></i>
+                            Upload Another File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Face Detections -->
+                <div class="face-detections slide-in">
+                    <div class="detection-header">
+                        <i class="fas fa-users"></i>
+                        Face Detections & Crops
+                        <span id="detectionCount" style="background: rgba(96, 165, 250, 0.2); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;"></span>
                     </div>
                     
-                    <div class="output-section">
-                        <h4>PDF Report</h4>
-                        <ul class="output-list">
-                            <li><i class="fas fa-check"></i> File information & metadata</li>
-                            <li><i class="fas fa-check"></i> Focus accuracy statistics</li>
-                            <li><i class="fas fa-check"></i> Individual detection results</li>
-                            <li><i class="fas fa-check"></i> Professional formatting</li>
-                        </ul>
+                    <div class="detection-grid" id="detectionGrid">
+                        <!-- Face detection cards will be populated here -->
                     </div>
                 </div>
             </div>
@@ -650,6 +932,8 @@
     <script>
         // Global variables
         let selectedFile = null;
+        let analysisResult = null;
+        
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
@@ -689,6 +973,9 @@
 
             // Form submission
             document.getElementById('uploadForm').addEventListener('submit', handleFormSubmit);
+
+            // Back to upload button
+            document.getElementById('backToUploadBtn').addEventListener('click', showUploadSection);
 
             // Navigation links
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -780,7 +1067,7 @@
             analyzeBtn.disabled = false;
             hideMessages();
 
-            showSuccess(`File "${file.name}" selected successfully. Ready for analysis with PDF report generation.`);
+            showSuccess(`File "${file.name}" selected successfully. Ready for face detection analysis.`);
         }
 
         function handleFormSubmit(e) {
@@ -794,7 +1081,7 @@
             // Show progress
             uploadProgress.style.display = 'block';
             analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Analyzing & Generating Report...';
+            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Analyzing Faces & Extracting Crops...';
 
             // Simulate progress
             simulateProgress();
@@ -808,21 +1095,17 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Upload failed');
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
                 }
-            })
-            .then(html => {
-                // Handle success - replace page content
-                document.body.innerHTML = html;
-                window.history.pushState({}, '', '/upload');
+                analysisResult = data;
+                showResultSection(data);
             })
             .catch(error => {
                 console.error('Error:', error);
-                showError('Upload failed. Please try again.');
+                showError('Analysis failed: ' + error.message);
                 resetUploadState();
             });
         }
@@ -830,7 +1113,7 @@
         function simulateProgress() {
             let progress = 0;
             const interval = setInterval(() => {
-                progress += Math.random() * 10;
+                progress += Math.random() * 15;
                 if (progress > 95) progress = 95;
                 
                 progressFill.style.width = progress + '%';
@@ -842,10 +1125,173 @@
             }, 200);
         }
 
+        function showResultSection(result) {
+            // Hide upload section
+            document.getElementById('uploadSection').style.display = 'none';
+            
+            // Show result section
+            document.getElementById('resultSection').style.display = 'block';
+            
+            // Update result stats
+            updateResultStats(result);
+            
+            // Show processed media
+            showProcessedMedia(result);
+            
+            // Show face detections
+            showFaceDetections(result.detections || []);
+            
+            // Setup PDF download if available
+            if (result.pdf_report) {
+                const pdfBtn = document.getElementById('downloadPdfBtn');
+                pdfBtn.style.display = 'inline-flex';
+                pdfBtn.onclick = () => {
+                    window.open(result.pdf_report, '_blank');
+                };
+            }
+            
+            // Reset upload state
+            resetUploadState();
+            
+            showSuccess(`Analysis complete! Detected ${result.detections?.length || 0} faces with focus state analysis.`);
+        }
+
+        function updateResultStats(result) {
+            const statsContainer = document.getElementById('resultStats');
+            const detections = result.detections || [];
+            
+            const totalFaces = detections.length;
+            const focusedFaces = detections.filter(d => d.status === 'FOCUSED').length;
+            const unfocusedFaces = detections.filter(d => d.status === 'NOT FOCUSED').length;
+            const yawningFaces = detections.filter(d => d.status === 'YAWNING').length;
+            const sleepingFaces = detections.filter(d => d.status === 'SLEEPING').length;
+            
+            const focusAccuracy = totalFaces > 0 ? Math.round((focusedFaces / totalFaces) * 100) : 0;
+            
+            statsContainer.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value" style="color: var(--primary-blue);">${totalFaces}</div>
+                    <div class="stat-label">Faces Detected</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: var(--success);">${focusedFaces}</div>
+                    <div class="stat-label">Focused</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: var(--warning);">${unfocusedFaces}</div>
+                    <div class="stat-label">Unfocused</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: var(--info);">${focusAccuracy}%</div>
+                    <div class="stat-label">Focus Accuracy</div>
+                </div>
+            `;
+        }
+
+        function showProcessedMedia(result) {
+            const container = document.getElementById('processedMediaContainer');
+            
+            if (result.type === 'image' && result.processed_image) {
+                container.innerHTML = `
+                    <img src="${result.processed_image}" alt="Processed Image" class="processed-image">
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 10px;">
+                        Processed image with face detection overlays and landmarks
+                    </p>
+                `;
+            } else if (result.type === 'video' && result.processed_video) {
+                container.innerHTML = `
+                    <video controls class="processed-video">
+                        <source src="${result.processed_video}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 10px;">
+                        Processed video with real-time face detection and focus analysis
+                    </p>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 16px;"></i>
+                        <p>Processed media not available</p>
+                    </div>
+                `;
+            }
+        }
+
+        function showFaceDetections(detections) {
+            const grid = document.getElementById('detectionGrid');
+            const countBadge = document.getElementById('detectionCount');
+            
+            countBadge.textContent = `${detections.length} faces`;
+            
+            if (detections.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-detections">
+                        <i class="fas fa-user-slash"></i>
+                        <p>No faces detected in the uploaded file</p>
+                        <p style="font-size: 0.9rem; margin-top: 8px;">Try uploading an image or video with clear, front-facing faces</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = detections.map((detection, index) => {
+                const statusClass = detection.status.toLowerCase().replace(' ', '-');
+                const confidence = Math.round(detection.confidence * 100);
+                
+                return `
+                    <div class="detection-card ${statusClass}">
+                        <div class="detection-content">
+                            <img src="${detection.image_path}" alt="Face Crop ${detection.id}" class="face-crop" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display: none; width: 80px; height: 80px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; align-items: center; justify-content: center; color: var(--text-muted);">
+                                <i class="fas fa-user" style="font-size: 2rem;"></i>
+                            </div>
+                            
+                            <div class="detection-info">
+                                <div class="person-id">Person ${detection.id}</div>
+                                <div class="detection-status status-${statusClass}">
+                                    ${detection.status}
+                                </div>
+                                <div class="detection-details">
+                                    <div style="margin-bottom: 4px;">
+                                        <strong>Confidence:</strong> ${confidence}%
+                                    </div>
+                                    <div style="margin-bottom: 4px;">
+                                        <strong>Position:</strong> (${detection.bbox[0]}, ${detection.bbox[1]})
+                                    </div>
+                                    <div>
+                                        <strong>Size:</strong> ${detection.bbox[2]} × ${detection.bbox[3]}px
+                                    </div>
+                                </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: ${confidence}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showUploadSection() {
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'block';
+            
+            // Reset form
+            selectedFile = null;
+            fileInfo.style.display = 'none';
+            analyzeBtn.disabled = true;
+            document.getElementById('fileInput').value = '';
+            hideMessages();
+            
+            showSuccess('Ready for new file upload and analysis');
+        }
+
         function resetUploadState() {
             uploadProgress.style.display = 'none';
             analyzeBtn.disabled = false;
-            analyzeBtn.innerHTML = '<i class="fas fa-search" style="margin-right: 8px;"></i>Analyze & Generate Report';
+            analyzeBtn.innerHTML = '<i class="fas fa-search" style="margin-right: 8px;"></i>Analyze & Extract Face Crops';
             progressFill.style.width = '0%';
             progressPercent.textContent = '0%';
         }
@@ -885,6 +1331,11 @@
             if (e.ctrlKey && e.key === 'o') {
                 e.preventDefault();
                 fileInput.click();
+            }
+            if (e.key === 'Escape') {
+                if (document.getElementById('resultSection').style.display !== 'none') {
+                    showUploadSection();
+                }
             }
         });
     </script>
