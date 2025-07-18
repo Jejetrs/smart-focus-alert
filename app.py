@@ -648,7 +648,7 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
             return None
 
         fps = len(recording_frames) / actual_duration_seconds
-        fps = max(1.0, min(fps, 30.0))  # Batasi antara 1 dan 30
+        fps = max(20.0, min(fps, 30.0))  # Batasi antara 1 dan 30
         print(f"Calculated FPS: {fps:.2f} for duration {actual_duration_seconds:.2f}s")
 
         height, width = recording_frames[0].shape[:2]
