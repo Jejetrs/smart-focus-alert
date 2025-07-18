@@ -658,7 +658,7 @@ def create_session_recording_from_frames(recording_frames, output_path):
         
         # Video settings optimized untuk Railway
         fourcc = cv.VideoWriter_fourcc(*'mp4v')
-        fps = 15.0  # Reduced fps untuk Railway
+        fps = 30.0  # Reduced fps untuk Railway
         out = cv.VideoWriter(output_path, fourcc, fps, (width, height))
         
         if not out.isOpened():
@@ -1097,7 +1097,7 @@ def process_video_file(video_path):
     
     all_detections = []
     frame_count = 0
-    process_every_n_frames = 10  # Process setiap 10 frame untuk Railway optimization
+    process_every_n_frames = 5  # Process setiap 10 frame untuk Railway optimization
     
     while cap.isOpened():
         ret, frame = cap.read()
