@@ -281,9 +281,60 @@ def detect_drowsiness(frame, landmarks, speech_engine=None):
         print(f"Drowsiness detection error: {str(e)}")
         return {"state": "FOCUSED"}, "FOCUSED"
 
-# FIXED: Enhanced continuous distraction session tracking
+# FIXED: Debug function untuk memastikan consistency
+def debug_session_consistency():
+    """Debug function untuk memastikan consistency antara session tracking dan alert history"""
+    global person_distraction_sessions, session_data
+    
+    print("\n=== SESSION CONSISTENCY DEBUG ===")
+    
+    # Debug session tracking
+    print("Active Distraction Sessions:")
+    total_session_durations = {'SLEEPING': 0, 'YAWNING': 0, 'NOT FOCUSED': 0}
+    
+    for person_key, sessions in person_distraction_sessions.items():
+        print(f"  {person_key}:")
+        for distraction_type, session_list in sessions.items():
+            total_duration = sum(session['duration'] for session in session_list)
+            total_session_durations[distraction_type] += total_duration
+            print(f"    {distraction_type}: {len(session_list)} sessions, {total_duration:.1f}s total")
+    
+    # Debug alert history
+    print("\nAlert History Summary:")
+    alert_durations = {'SLEEPING': 0, 'YAWNING': 0, 'NOT FOCUSED': 0}
+    alert_counts = {'SLEEPING': 0, 'YAWNING': 0, 'NOT FOCUSED': 0}
+    
+    if session_data and session_data.get('alerts'):
+        for alert in session_data['alerts']:
+            detection = alert.get('detection', 'Unknown')
+            duration = alert.get('duration', 0)
+            is_final = alert.get('final_duration', False)
+            
+            if detection in alert_durations:
+                if is_final:  # Only count finalized alerts untuk accuracy
+                    alert_durations[detection] += duration
+                    alert_counts[detection] += 1
+                print(f"    {alert.get('person')} - {detection}: {duration}s ({'FINAL' if is_final else 'ONGOING'})")
+    
+    # Compare consistency
+    print("\nConsistency Check:")
+    for distraction_type in ['SLEEPING', 'YAWNING', 'NOT FOCUSED']:
+        session_total = total_session_durations[distraction_type]
+        alert_total = alert_durations[distraction_type]
+        print(f"  {distraction_type}:")
+        print(f"    Session Tracking: {session_total:.1f}s")
+        print(f"    Alert History: {alert_total:.1f}s")
+        print(f"    Difference: {abs(session_total - alert_total):.1f}s")
+        if abs(session_total - alert_total) > 2:  # Allow 2 second tolerance
+            print(f"    ❌ INCONSISTENCY DETECTED!")
+        else:
+            print(f"    ✅ Consistent")
+    
+    print("=== END DEBUG ===\n")
+
+# Modified update_distraction_sessions to include debugging
 def update_distraction_sessions(person_id, current_state, current_time):
-    """FIXED: Update continuous distraction sessions dengan proper session management"""
+    """FIXED: Update continuous distraction sessions dengan proper session management dan alert recording"""
     global person_distraction_sessions, person_current_states, person_state_start_times
     global session_data, session_start_time
     
@@ -301,7 +352,7 @@ def update_distraction_sessions(person_id, current_state, current_time):
     if previous_state != current_state:
         print(f"FIXED: Person {person_id} state changed: {previous_state} -> {current_state}")
         
-        # FIXED: Close previous session if it was a distraction
+        # FIXED: Close previous session if it was a distraction dan record final duration
         if previous_state and previous_state in DISTRACTION_THRESHOLDS:
             session_duration = current_time - person_state_start_times[person_key]
             
@@ -309,13 +360,45 @@ def update_distraction_sessions(person_id, current_state, current_time):
             if previous_state not in person_distraction_sessions[person_key]:
                 person_distraction_sessions[person_key][previous_state] = []
             
-            person_distraction_sessions[person_key][previous_state].append({
+            session_record = {
                 'start_time': person_state_start_times[person_key],
                 'end_time': current_time,
                 'duration': session_duration
-            })
+            }
+            person_distraction_sessions[person_key][previous_state].append(session_record)
+            
+            # FIXED: Update atau create final alert record dengan total session duration
+            with monitoring_lock:
+                if live_monitoring_active and session_data and session_data.get('start_time'):
+                    # Find existing alerts for this person and state dalam current session
+                    session_alerts = [alert for alert in session_data['alerts'] 
+                                    if alert.get('person') == f"Person {person_id}" 
+                                    and alert.get('detection') == previous_state]
+                    
+                    if session_alerts:
+                        # Update the last alert with final session duration
+                        last_alert = session_alerts[-1]
+                        last_alert['duration'] = int(session_duration)
+                        last_alert['final_duration'] = True  # Mark as finalized
+                        print(f"FIXED: Updated final alert duration for {previous_state}: {session_duration:.1f}s")
+                    else:
+                        # Create alert record if none exists
+                        alert_entry = {
+                            'timestamp': datetime.now().isoformat(),
+                            'person': f"Person {person_id}",
+                            'detection': previous_state,
+                            'message': get_alert_message(person_id, previous_state),
+                            'duration': int(session_duration),
+                            'alert_time': datetime.now().strftime("%H:%M:%S"),
+                            'final_duration': True
+                        }
+                        session_data['alerts'].append(alert_entry)
             
             print(f"FIXED: Closed {previous_state} session for person {person_id}: {session_duration:.2f}s")
+            
+            # Debug consistency setiap state change
+            if person_id == 1:  # Only debug for person 1 to avoid spam
+                debug_session_consistency()
         
         # Update state dan start time
         person_current_states[person_key] = current_state
@@ -377,7 +460,7 @@ def calculate_total_distraction_times():
     return totals
 
 def should_trigger_alert(person_id, current_state, current_duration):
-    """FIXED: Check if alert should be triggered dengan proper cooldown"""
+    """FIXED: Check if alert should be triggered dengan proper cooldown dan smart frequency"""
     global last_alert_times
     
     if current_state not in DISTRACTION_THRESHOLDS:
@@ -391,13 +474,28 @@ def should_trigger_alert(person_id, current_state, current_duration):
     if current_duration < threshold:
         return False
     
-    # Check cooldown (5 seconds between alerts)
+    # FIXED: Smart alert frequency - first alert setelah threshold, then every 15 seconds
     if person_key in last_alert_times:
-        if current_time - last_alert_times[person_key] < 5:
+        time_since_last_alert = current_time - last_alert_times[person_key]
+        
+        # For first alert after threshold: immediate
+        # For subsequent alerts: every 15 seconds to avoid spam but keep user aware
+        if time_since_last_alert < 15:  # 15 second cooldown
             return False
     
     last_alert_times[person_key] = current_time
     return True
+
+def get_alert_message(person_id, alert_type):
+    """Generate alert message untuk consistency"""
+    if alert_type == 'SLEEPING':
+        return f'Person {person_id} is sleeping - please wake up!'
+    elif alert_type == 'YAWNING':
+        return f'Person {person_id} is yawning - please take a rest!'
+    elif alert_type == 'NOT FOCUSED':
+        return f'Person {person_id} is not focused - please focus on screen!'
+    else:
+        return f'Person {person_id} attention alert'
 
 def detect_persons_with_attention(image, mode="image"):
     """FIXED: Detect persons dengan continuous session tracking"""
@@ -602,34 +700,42 @@ def detect_persons_with_attention(image, mode="image"):
     return image, detections
 
 def trigger_alert(person_id, alert_type, duration):
-    """FIXED: Trigger alert dengan proper session logging"""
+    """FIXED: Trigger alert dengan proper session logging dan avoid duplicate records"""
     global session_data
     
     alert_time = datetime.now().strftime("%H:%M:%S")
+    alert_message = get_alert_message(person_id, alert_type)
     
-    # Generate alert message
-    if alert_type == 'SLEEPING':
-        alert_message = f'Person {person_id} is sleeping - please wake up!'
-    elif alert_type == 'YAWNING':
-        alert_message = f'Person {person_id} is yawning - please take a rest!'
-    elif alert_type == 'NOT FOCUSED':
-        alert_message = f'Person {person_id} is not focused - please focus on screen!'
-    else:
-        return
-    
-    # FIXED: Store alert dengan session duration, bukan individual detection duration
+    # FIXED: Store alert dengan session duration, avoid duplicates within same session
     with monitoring_lock:
         if live_monitoring_active and session_data and session_data.get('start_time'):
-            alert_entry = {
-                'timestamp': datetime.now().isoformat(),
-                'person': f"Person {person_id}",
-                'detection': alert_type,
-                'message': alert_message,
-                'duration': int(duration),  # FIXED: Use actual continuous session duration
-                'alert_time': alert_time
-            }
-            session_data['alerts'].append(alert_entry)
-            print(f"FIXED: Alert triggered - {alert_message} (Session Duration: {duration:.1f}s)")
+            # Check if this is a continuation of same distraction session
+            person_key = f"Person {person_id}"
+            recent_alerts = [alert for alert in session_data['alerts'][-3:] 
+                           if alert.get('person') == person_key 
+                           and alert.get('detection') == alert_type
+                           and not alert.get('final_duration', False)]
+            
+            if recent_alerts:
+                # Update existing alert instead of creating new one
+                recent_alerts[-1]['duration'] = int(duration)
+                recent_alerts[-1]['timestamp'] = datetime.now().isoformat()
+                recent_alerts[-1]['alert_time'] = alert_time
+                print(f"FIXED: Updated existing alert duration for {alert_type}: {duration:.1f}s")
+            else:
+                # Create new alert entry
+                alert_entry = {
+                    'timestamp': datetime.now().isoformat(),
+                    'person': person_key,
+                    'detection': alert_type,
+                    'message': alert_message,
+                    'duration': int(duration),
+                    'alert_time': alert_time,
+                    'final_duration': False  # Mark as ongoing session
+                }
+                session_data['alerts'].append(alert_entry)
+                print(f"FIXED: New alert triggered - {alert_message} (Session Duration: {duration:.1f}s)")
+
 
 def update_session_statistics(detections):
     """FIXED: Update session statistics dengan continuous session tracking"""
@@ -950,33 +1056,52 @@ def generate_pdf_report(session_data, output_path):
         return None
 
 def get_most_common_distraction_from_sessions():
-    """FIXED: Get most common distraction dari continuous sessions, bukan individual alerts"""
-    global person_distraction_sessions
+    """FIXED: Get most common distraction dari continuous sessions yang sesuai dengan alert history"""
+    global person_distraction_sessions, session_data
     
-    distraction_totals = {}
-    distraction_counts = {}
-    
-    for person_key, sessions in person_distraction_sessions.items():
-        for distraction_type, session_list in sessions.items():
-            total_duration = sum(session['duration'] for session in session_list)
-            count = len(session_list)
-            
-            if distraction_type not in distraction_totals:
-                distraction_totals[distraction_type] = 0
-                distraction_counts[distraction_type] = 0
-            
-            distraction_totals[distraction_type] += total_duration
-            distraction_counts[distraction_type] += count
-    
-    if not distraction_totals:
+    # FIXED: Use actual alert history untuk consistency dengan PDF report
+    if not session_data or not session_data.get('alerts'):
         return "None"
     
-    # Find most common by total duration
-    most_common = max(distraction_totals, key=distraction_totals.get)
-    count = distraction_counts[most_common]
-    total_duration = int(distraction_totals[most_common])
+    distraction_counts = {}
+    distraction_durations = {}
     
-    return f"{most_common} ({count} sessions, {total_duration}s total)"
+    # Calculate dari alert history yang sebenarnya
+    for alert in session_data['alerts']:
+        if alert.get('final_duration', False):  # Only count finalized alerts
+            detection = alert.get('detection', 'Unknown')
+            duration = alert.get('duration', 0)
+            
+            if detection not in distraction_counts:
+                distraction_counts[detection] = 0
+                distraction_durations[detection] = 0
+            
+            distraction_counts[detection] += 1
+            distraction_durations[detection] += duration
+    
+    if not distraction_counts:
+        # Fallback to session tracking if no finalized alerts
+        for person_key, sessions in person_distraction_sessions.items():
+            for distraction_type, session_list in sessions.items():
+                total_duration = sum(session['duration'] for session in session_list)
+                count = len(session_list)
+                
+                if distraction_type not in distraction_counts:
+                    distraction_counts[distraction_type] = 0
+                    distraction_durations[distraction_type] = 0
+                
+                distraction_counts[distraction_type] += count
+                distraction_durations[distraction_type] += total_duration
+    
+    if not distraction_counts:
+        return "None"
+    
+    # Find most common by total duration (more meaningful than count)
+    most_common = max(distraction_durations, key=distraction_durations.get)
+    count = distraction_counts[most_common]
+    total_duration = int(distraction_durations[most_common])
+    
+    return f"{most_common} ({count} times, {total_duration}s total)"
 
 def generate_upload_pdf_report(detections, file_info, output_path):
     """Generate PDF report untuk uploaded file analysis"""
@@ -1306,7 +1431,7 @@ def start_monitoring():
 
 @application.route('/stop_monitoring', methods=['POST'])
 def stop_monitoring():
-    """FIXED: Stop monitoring dengan finalized continuous session tracking"""
+    """FIXED: Stop monitoring dengan finalized continuous session tracking dan alert consistency"""
     global live_monitoring_active, session_data, recording_active
     global person_distraction_sessions, person_current_states, person_state_start_times
     
@@ -1319,12 +1444,13 @@ def stop_monitoring():
             if not live_monitoring_active and (not session_data or not session_data.get('start_time')):
                 return jsonify({"status": "error", "message": "Monitoring not active"})
             
-            # FIXED: Finalize all ongoing distraction sessions
+            # FIXED: Finalize all ongoing distraction sessions dengan consistent alert recording
             current_time = time.time()
             for person_key, current_state in person_current_states.items():
                 if current_state and current_state in DISTRACTION_THRESHOLDS:
                     if person_key in person_state_start_times:
                         session_duration = current_time - person_state_start_times[person_key]
+                        person_id = person_key.split('_')[1]
                         
                         # Add final session to distraction sessions
                         if current_state not in person_distraction_sessions.get(person_key, {}):
@@ -1332,18 +1458,69 @@ def stop_monitoring():
                                 person_distraction_sessions[person_key] = {}
                             person_distraction_sessions[person_key][current_state] = []
                         
-                        person_distraction_sessions[person_key][current_state].append({
+                        session_record = {
                             'start_time': person_state_start_times[person_key],
                             'end_time': current_time,
                             'duration': session_duration
-                        })
+                        }
+                        person_distraction_sessions[person_key][current_state].append(session_record)
+                        
+                        # FIXED: Ensure final alert reflects complete session duration
+                        session_alerts = [alert for alert in session_data['alerts'] 
+                                        if alert.get('person') == f"Person {person_id}" 
+                                        and alert.get('detection') == current_state
+                                        and not alert.get('final_duration', False)]
+                        
+                        if session_alerts:
+                            # Update last alert with final duration
+                            last_alert = session_alerts[-1]
+                            last_alert['duration'] = int(session_duration)
+                            last_alert['final_duration'] = True
+                            print(f"FIXED: Finalized alert duration for {current_state}: {session_duration:.1f}s")
+                        else:
+                            # Create final alert if none exists
+                            alert_entry = {
+                                'timestamp': datetime.now().isoformat(),
+                                'person': f"Person {person_id}",
+                                'detection': current_state,
+                                'message': get_alert_message(person_id, current_state),
+                                'duration': int(session_duration),
+                                'alert_time': datetime.now().strftime("%H:%M:%S"),
+                                'final_duration': True
+                            }
+                            session_data['alerts'].append(alert_entry)
                         
                         print(f"FIXED: Finalized {current_state} session for {person_key}: {session_duration:.2f}s")
             
-            # Merge client alerts if provided
+            # FIXED: Clean up duplicate alerts dan ensure consistency
+            cleaned_alerts = []
+            for alert in session_data['alerts']:
+                # Keep only final_duration alerts or latest non-final alerts per person/detection
+                person = alert.get('person')
+                detection = alert.get('detection')
+                
+                if alert.get('final_duration', False):
+                    # Always keep finalized alerts
+                    cleaned_alerts.append(alert)
+                else:
+                    # Check if there's a finalized version
+                    has_final = any(a.get('person') == person and a.get('detection') == detection 
+                                  and a.get('final_duration', False) for a in session_data['alerts'])
+                    if not has_final:
+                        # Keep if no finalized version exists
+                        existing = [a for a in cleaned_alerts 
+                                  if a.get('person') == person and a.get('detection') == detection
+                                  and not a.get('final_duration', False)]
+                        if not existing:
+                            cleaned_alerts.append(alert)
+            
+            session_data['alerts'] = cleaned_alerts
+            print(f"FIXED: Cleaned alerts list, total: {len(cleaned_alerts)}")
+            
+            # Merge client alerts if provided (but prioritize server-side tracking)
             if client_alerts:
                 session_data['client_alerts'] = client_alerts
-                print(f"FIXED: Merged {len(client_alerts)} client alerts")
+                print(f"FIXED: Merged {len(client_alerts)} client alerts (for reference)")
             
             # Stop monitoring
             live_monitoring_active = False
@@ -1354,13 +1531,13 @@ def stop_monitoring():
             
             response_data = {
                 "status": "success", 
-                "message": "FIXED continuous session tracking stopped",
+                "message": "FIXED continuous session tracking stopped with accurate duration recording",
                 "alerts_processed": len(session_data['alerts']),
                 "frames_captured": len(session_data.get('recording_frames', [])),
                 "distraction_sessions": len(person_distraction_sessions)
             }
             
-            # Generate PDF report
+            # Generate PDF report with corrected data
             try:
                 pdf_filename = f"session_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.pdf"
                 pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
@@ -1369,7 +1546,7 @@ def stop_monitoring():
                 
                 if pdf_result and os.path.exists(pdf_path):
                     response_data["pdf_report"] = f"/static/reports/{pdf_filename}"
-                    print(f"FIXED PDF SUCCESS: {pdf_filename}")
+                    print(f"FIXED PDF SUCCESS: {pdf_filename} with accurate session durations")
                 else:
                     print("FIXED PDF FAILED: File not created")
                     
@@ -1588,11 +1765,73 @@ def check_camera():
         print(f"Error checking camera: {str(e)}")
         return jsonify({"camera_available": False})
 
-@application.route('/health')
-def health_check():
-    """Enhanced health check endpoint"""
+@application.route('/debug_session')
+def debug_session():
+    """Debug endpoint untuk memantau consistency session"""
     try:
         with monitoring_lock:
+            debug_data = {
+                "monitoring_active": live_monitoring_active,
+                "session_tracking": {},
+                "alert_history": [],
+                "consistency_check": {}
+            }
+            
+            # Session tracking data
+            total_session_durations = {'SLEEPING': 0, 'YAWNING': 0, 'NOT FOCUSED': 0}
+            for person_key, sessions in person_distraction_sessions.items():
+                debug_data["session_tracking"][person_key] = {}
+                for distraction_type, session_list in sessions.items():
+                    total_duration = sum(session['duration'] for session in session_list)
+                    total_session_durations[distraction_type] += total_duration
+                    debug_data["session_tracking"][person_key][distraction_type] = {
+                        "sessions": len(session_list),
+                        "total_duration": round(total_duration, 1)
+                    }
+            
+            # Alert history data
+            alert_durations = {'SLEEPING': 0, 'YAWNING': 0, 'NOT FOCUSED': 0}
+            if session_data and session_data.get('alerts'):
+                for alert in session_data['alerts']:
+                    detection = alert.get('detection', 'Unknown')
+                    duration = alert.get('duration', 0)
+                    is_final = alert.get('final_duration', False)
+                    
+                    debug_data["alert_history"].append({
+                        "person": alert.get('person'),
+                        "detection": detection,
+                        "duration": duration,
+                        "is_final": is_final,
+                        "time": alert.get('alert_time')
+                    })
+                    
+                    if detection in alert_durations and is_final:
+                        alert_durations[detection] += duration
+            
+            # Consistency check
+            for distraction_type in ['SLEEPING', 'YAWNING', 'NOT FOCUSED']:
+                session_total = total_session_durations[distraction_type]
+                alert_total = alert_durations[distraction_type]
+                debug_data["consistency_check"][distraction_type] = {
+                    "session_total": round(session_total, 1),
+                    "alert_total": round(alert_total, 1),
+                    "difference": round(abs(session_total - alert_total), 1),
+                    "consistent": abs(session_total - alert_total) <= 2
+                }
+            
+            return jsonify(debug_data)
+            
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@application.route('/health')
+def health_check():
+    """Enhanced health check endpoint dengan debug info"""
+    try:
+        with monitoring_lock:
+            # Run consistency check
+            debug_session_consistency()
+            
             return jsonify({
                 "status": "healthy", 
                 "timestamp": datetime.now().isoformat(),
@@ -1609,7 +1848,8 @@ def health_check():
                 "frame_storage_ratio": len(session_data.get('recording_frames', [])) / max(1, session_data.get('total_frames_processed', 1)) * 100 if session_data else 0,
                 "mediapipe_status": "initialized" if face_detection and face_mesh else "error",
                 "distraction_sessions": len(person_distraction_sessions),
-                "version": "continuous_session_tracking_v1.0"
+                "version": "continuous_session_tracking_v2.0_with_consistency_check",
+                "debug_endpoint": "/debug_session"
             })
     except Exception as e:
         print(f"Health check error: {str(e)}")
