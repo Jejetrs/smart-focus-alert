@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Live Focus Monitoring - Smart Focus Alert</title>
+    <title>Analysis Results - Smart Focus Alert</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -13,7 +13,6 @@
             --primary-purple: #a78bfa;
             --dark-bg: #0f172a;
             --dark-secondary: #1e293b;
-            --card-bg: #1e293b;
             --glass-bg: rgba(30, 41, 59, 0.7);
             --glass-border: rgba(255, 255, 255, 0.08);
             --text-primary: #f8fafc;
@@ -23,7 +22,6 @@
             --warning: #f59e0b;
             --danger: #ef4444;
             --info: #06b6d4;
-            --sidebar-bg: #334155;
         }
 
         * {
@@ -33,30 +31,24 @@
         }
 
         body {
-            background: var(--dark-bg);
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-secondary) 100%);
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
             color: var(--text-primary);
             line-height: 1.6;
         }
 
-        .flex { display: flex; }
-        .justify-between { justify-content: space-between; }
-        .justify-center { justify-content: center; }
-        .items-center { align-items: center; }
-        .text-center { text-align: center; }
-
-        .text-gradient {
-            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
+        .glass-card:hover {
+            border-color: rgba(96, 165, 250, 0.2);
+            transform: translateY(-2px);
         }
 
         .navbar {
@@ -69,18 +61,46 @@
             z-index: 100;
         }
 
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .results-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         .nav-brand {
             font-size: 1.5rem;
             font-weight: 700;
             text-decoration: none;
             color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-brand i {
-            color: var(--primary-blue);
         }
 
         .nav-links {
@@ -96,41 +116,20 @@
             transition: color 0.3s ease;
         }
 
-        .nav-link:hover, .nav-link.active {
+        .nav-link:hover {
             color: var(--primary-blue);
         }
 
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            transition: all 0.3s ease;
+        .title-lg {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
         }
 
-        .card:hover {
-            border-color: rgba(96, 165, 250, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .card-padding {
-            padding: 24px;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
+        .title-md {
+            font-size: 1.875rem;
             font-weight: 600;
-            color: var(--primary-blue);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 16px;
         }
 
         .btn {
@@ -144,8 +143,6 @@
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            font-size: 14px;
-            gap: 8px;
         }
 
         .btn-primary {
@@ -158,142 +155,57 @@
             color: white;
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, var(--danger), #dc2626);
-            color: white;
-        }
-
-        .btn:hover:not(:disabled) {
+        .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .sidebar-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 16px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .sidebar-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .live-indicator {
-            display: flex;
-            align-items: center;
-            background: rgba(148, 163, 184, 0.2);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .live-indicator.active {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
-        }
-
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--text-muted);
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .live-dot.active {
-            background: var(--danger);
-            animation: pulse 1.5s infinite;
-        }
-
-        .status-display {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px 24px;
+        .media-preview {
+            max-width: 100%;
             border-radius: 12px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 24px;
-            background: rgba(148, 163, 184, 0.1);
-            color: var(--text-muted);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
-        .status-display.status-focused {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border-color: rgba(16, 185, 129, 0.3);
-        }
-
-        .status-display.status-unfocused {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-            border-color: rgba(245, 158, 11, 0.3);
-        }
-
-        .status-display.status-yawning {
-            background: rgba(234, 179, 8, 0.1);
-            color: #eab308;
-            border-color: rgba(234, 179, 8, 0.3);
-        }
-
-        .status-display.status-sleeping {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 12px;
-            background-color: var(--text-muted);
-        }
-
-        .status-indicator.status-focused { background-color: var(--success); }
-        .status-indicator.status-unfocused { background-color: var(--warning); }
-        .status-indicator.status-yawning { background-color: #eab308; }
-        .status-indicator.status-sleeping { background-color: var(--danger); }
-
-        .stats-grid {
+        .comparison-view {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
         }
 
-        .stat-card {
-            background: var(--dark-bg);
+        .media-section {
+            text-align: center;
+        }
+
+        .media-section h3 {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .detection-summary {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: rgba(15, 23, 42, 0.8);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             padding: 20px;
             text-align: center;
-            transition: all 0.3s ease;
         }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--primary-blue);
-            box-shadow: 0 8px 25px rgba(96, 165, 250, 0.2);
-        }
-
-        .stat-value {
-            font-size: 2rem;
+        .stat-number {
+            font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 8px;
         }
@@ -301,447 +213,130 @@
         .stat-label {
             color: var(--text-secondary);
             font-size: 0.9rem;
-            font-weight: 500;
         }
 
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 24px;
-            background: var(--success);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .toggle-switch::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.3s ease;
-        }
-
-        .toggle-switch.off {
-            background: var(--text-muted);
-        }
-
-        .toggle-switch.off::before {
-            transform: translateX(-26px);
-        }
-
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 32px 24px;
-            min-height: calc(100vh - 88px);
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .page-subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        .monitoring-status-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--glass-border);
-            margin-bottom: 24px;
-        }
-
-        .content-grid {
+        .detection-grid {
             display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
         }
 
-        .left-column {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .video-container {
-            background: var(--dark-bg);
-            border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 450px;
+        .person-card {
+            background: var(--glass-bg);
             border: 1px solid var(--glass-border);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .video-stream {
-            max-width: 100%;
-            height: auto;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            transition: all 0.3s ease;
         }
 
-        .client-video {
-            max-width: 100%;
-            height: auto;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            display: none;
+        .person-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-blue);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
 
-        .client-canvas {
-            max-width: 100%;
-            height: auto;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            display: none;
-        }
-
-        .video-placeholder {
-            text-align: center;
-            color: var(--text-muted);
-            padding: 40px 20px;
-        }
-
-        .video-placeholder i {
-            font-size: 4rem;
+        .person-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
             margin-bottom: 16px;
-            color: var(--text-muted);
         }
 
-        .controls-panel {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin-top: 10px;
-            flex-wrap: wrap;
+        .person-details {
+            margin-bottom: 16px;
         }
 
-        .left-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            background: var(--dark-bg);
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .connection-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(245, 158, 11, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--warning);
-        }
-
-        .connection-text {
-            flex: 1;
-        }
-
-        .connection-title {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .connection-subtitle {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .audio-alert {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px;
-            background: var(--dark-bg);
-            border-radius: 12px;
-            margin-bottom: 10px;
-        }
-
-        /* Enhanced Detection Display */
-        .detection-info {
-            background: var(--dark-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .detection-info::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .detection-info::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.3);
-            border-radius: 3px;
-        }
-
-        .detection-info::-webkit-scrollbar-thumb {
-            background: var(--primary-blue);
-            border-radius: 3px;
-        }
-
-        .detection-item {
+        .detail-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            margin-bottom: 12px;
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 12px;
-            border-left: 4px solid var(--info);
-            transition: all 0.3s ease;
+            margin-bottom: 8px;
+            padding: 4px 0;
         }
 
-        .detection-item.focused {
-            border-left-color: var(--success);
-            background: rgba(16, 185, 129, 0.05);
-        }
-
-        .detection-item.not-focused {
-            border-left-color: var(--warning);
-            background: rgba(245, 158, 11, 0.05);
-        }
-
-        .detection-item.yawning {
-            border-left-color: #eab308;
-            background: rgba(234, 179, 8, 0.05);
-        }
-
-        .detection-item.sleeping {
-            border-left-color: var(--danger);
-            background: rgba(239, 68, 68, 0.05);
-        }
-
-        .detection-details {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            flex: 1;
-        }
-
-        .detection-person {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .detection-status {
-            font-size: 0.9rem;
+        .detail-label {
             color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .detail-value {
             font-weight: 500;
         }
 
-        .detection-confidence {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .detection-timer-section {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-            min-width: 120px;
-        }
-
-        .detection-timer {
-            font-size: 1.1rem;
-            font-weight: 700;
-            text-align: right;
-        }
-
-        .detection-timer.focused { color: var(--success); }
-        .detection-timer.not-focused { color: var(--warning); }
-        .detection-timer.yawning { color: #eab308; }
-        .detection-timer.sleeping { color: var(--danger); }
-
-        .detection-progress {
-            width: 100px;
-            height: 6px;
-            background: rgba(148, 163, 184, 0.2);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .detection-progress-bar {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-
-        .detection-progress-bar.focused { background: var(--success); }
-        .detection-progress-bar.not-focused { background: var(--warning); }
-        .detection-progress-bar.yawning { background: #eab308; }
-        .detection-progress-bar.sleeping { background: var(--danger); }
-
-        .threshold-text {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-align: right;
-        }
-
-        .alert-badge {
+        .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .status-badge.focused {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.unfocused {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-badge.yawning {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .status-badge.sleeping {
             background: rgba(239, 68, 68, 0.2);
             color: var(--danger);
-            animation: pulse 1.5s infinite;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        .thresholds-grid {
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-focused { background-color: var(--success); }
+        .status-unfocused { background-color: var(--warning); }
+        .status-yawning { background-color: #eab308; }
+        .status-sleeping { background-color: var(--danger); }
+
+        .download-section {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 30px;
+        }
+
+        .download-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .threshold-item {
-            text-align: center;
-            padding: 16px 12px;
-            background: var(--dark-bg);
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .threshold-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .threshold-label {
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .threshold-time {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .threshold-sleep .threshold-label { color: var(--danger); }
-        .threshold-yawning .threshold-label { color: var(--warning); }
-        .threshold-focus .threshold-label { color: var(--info); }
-
-        .alert-history {
-            max-height: 250px;
-            overflow-y: auto;
-            background: var(--dark-bg);
-            border-radius: 12px;
-            padding: 16px;
-        }
-
-        .alert-history::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .alert-history::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.3);
-            border-radius: 3px;
-        }
-
-        .alert-history::-webkit-scrollbar-thumb {
-            background: var(--primary-blue);
-            border-radius: 3px;
-        }
-
-        .alert-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            margin-bottom: 8px;
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 8px;
-            border-left: 4px solid var(--info);
-            transition: all 0.3s ease;
-        }
-
-        .alert-item:hover {
-            background: rgba(15, 23, 42, 0.8);
-        }
-
-        .alert-time {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            margin-left: auto;
-        }
-
-        .volume-label {
-            display: block;
-            margin-bottom: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-
-        .volume-select {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--dark-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .volume-select:focus {
-            outline: none;
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
         }
 
         .download-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--dark-bg);
+            background: rgba(15, 23, 42, 0.6);
             padding: 16px;
             border-radius: 8px;
-            margin-bottom: 12px;
             transition: all 0.3s ease;
         }
 
         .download-item:hover {
-            background: rgba(15, 23, 42, 0.8);
-            transform: translateY(-2px);
+            background: rgba(96, 165, 250, 0.1);
         }
 
         .download-info {
@@ -761,1613 +356,382 @@
             color: var(--primary-blue);
         }
 
-        .status-health {
-            padding: 12px;
-            background: var(--dark-bg);
-            border-radius: 8px;
-            margin-bottom: 16px;
-        }
-
-        .health-item {
+        .action-buttons {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            font-size: 0.85rem;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 30px;
+            flex-wrap: wrap;
         }
 
-        .health-status {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-danger { color: var(--danger); }
+        .text-info { color: var(--info); }
 
-        .health-status.ok {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-        }
-
-        .health-status.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
-        }
-
-        /* Enhanced Animations */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mb-8 { margin-bottom: 32px; }
+        .p-6 { padding: 24px; }
+        .p-8 { padding: 32px; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .fade-in { animation: fadeIn 0.6s ease-out; }
-
-        /* Enhanced notification styles */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 16px;
-            color: var(--text-primary);
-            z-index: 1000;
-            max-width: 350px;
-            animation: slideInRight 0.3s ease-out;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .notification-content {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .notification-icon {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-
-        .notification-text {
-            flex: 1;
-        }
-
-        .notification-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            margin-left: auto;
-            padding: 4px;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .notification-close:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .content-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .right-column {
-                order: -1;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
+        .slide-in { animation: slideIn 0.6s ease-out; }
 
         @media (max-width: 768px) {
-            .nav-links {
-                flex-direction: column;
-                gap: 12px;
-            }
-            
-            .main-container {
-                padding: 20px 16px;
-            }
-            
-            .page-title {
-                font-size: 2rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-            }
-            
-            .thresholds-grid {
+            .comparison-view {
                 grid-template-columns: 1fr;
-                gap: 8px;
             }
             
-            .controls-panel {
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .detection-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links { 
+                flex-direction: column; 
+                gap: 12px; 
+            }
+
+            .title-lg { 
+                font-size: 2rem; 
+            }
+
+            .action-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-
-            .detection-timer-section {
-                min-width: 100px;
-            }
-        }
-
-        /* Quality indicators */
-        .quality-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
-        .quality-excellent {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-        }
-
-        .quality-good {
-            background: rgba(6, 182, 212, 0.2);
-            color: var(--info);
-        }
-
-        .quality-fair {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--warning);
-        }
-
-        .quality-poor {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
         }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
     <nav class="navbar">
         <div class="container">
             <div class="flex justify-between items-center">
                 <a href="/" class="nav-brand text-gradient">
-                    <i class="fas fa-eye"></i>
+                    <i class="fas fa-eye" style="margin-right: 8px;"></i>
                     Smart Focus Alert
                 </a>
                 <div class="nav-links">
                     <a href="/" class="nav-link">Home</a>
-                    <a href="/webcam" class="nav-link active">Live Monitoring</a>
+                    <a href="/webcam" class="nav-link">Live Monitor</a>
                     <a href="/upload" class="nav-link">Upload</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="main-container">
-        <div class="page-header">
-            <h1 class="page-title text-gradient">Enhanced Live Focus Monitoring</h1>
-            <p class="page-subtitle">Real-time focus detection with corrected accuracy calculations, improved video recording, and comprehensive reporting</p>
+    <div class="results-container">
+        <!-- Header -->
+        <div class="text-center mb-8 fade-in">
+            <h1 class="title-lg text-gradient mb-4">Analysis Results</h1>
+            <p style="color: var(--text-secondary);">Detailed focus analysis report for your uploaded media</p>
         </div>
 
-        <div class="monitoring-status-card">
-            <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-chart-line"></i>
-                    Enhanced Monitoring Status
-                    <span class="quality-indicator quality-excellent" id="qualityIndicator" style="display: none;">
-                        <i class="fas fa-star"></i>
-                        High Quality
-                    </span>
-                </h2>
-                <div class="live-indicator" id="liveIndicator">
-                    <div class="live-dot" id="liveDot"></div>
-                    <span id="liveText">READY</span>
-                </div>
+        {% if result %}
+        <!-- Media Comparison -->
+        {% if result.type == 'image' %}
+        <div class="comparison-view slide-in">
+            <div class="media-section">
+                <h3><i class="fas fa-image" style="margin-right: 8px;"></i>Original Image</h3>
+                <img src="{{ result.file_path }}" alt="Original" class="media-preview">
             </div>
-            
-            <div class="status-display" id="currentStatus">
-                <span class="status-indicator"></span>
-                Enhanced System Ready - Corrected calculations & improved video quality
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" style="color: var(--success);" id="totalPersons">0</div>
-                    <div class="stat-label">Persons Detected</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: var(--info);" id="focusedCount">0</div>
-                    <div class="stat-label">Currently Focused</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" style="color: var(--warning);" id="alertCount">0</div>
-                    <div class="stat-label">Total Alerts</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value text-gradient" id="sessionTime">00:00:00</div>
-                    <div class="stat-label">Session Time</div>
-                </div>
+            <div class="media-section">
+                <h3><i class="fas fa-search" style="margin-right: 8px;"></i>Processed Image</h3>
+                <img src="{{ result.processed_image }}" alt="Processed" class="media-preview">
             </div>
         </div>
-
-        <div class="content-grid">
-            <div class="left-column">
-                <div class="video-container">
-                    <img src="" class="video-stream" id="videoStream" alt="Live Video Feed" style="display: none;">
-                    
-                    <video id="clientVideo" class="client-video" autoplay></video>
-                    <canvas id="clientCanvas" class="client-canvas" width="640" height="480"></canvas>
-                    
-                    <div class="video-placeholder" id="videoPlaceholder">
-                        <i class="fas fa-video"></i>
-                        <h3 style="margin-bottom: 12px;">Enhanced Detection Ready</h3>
-                        <p style="margin-bottom: 20px;">Improved accuracy calculations & natural video recording</p>
-                        <div style="text-align: left; max-width: 450px; line-height: 1.6;">
-                            <div style="margin-bottom: 8px;">• <strong>Corrected Accuracy:</strong> Proper focus time calculations</div>
-                            <div style="margin-bottom: 8px;">• <strong>Natural Video:</strong> Improved frame rate & quality</div>
-                            <div style="margin-bottom: 8px;">• <strong>Enhanced Reports:</strong> Detailed PDF with recommendations</div>
-                            <div style="margin-bottom: 8px;">• <strong>Better Performance:</strong> Optimized memory management</div>
-                            <div>• <strong>Quality Indicators:</strong> Real-time performance metrics</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="controls-panel">
-                    <button class="btn btn-primary" id="startBtn" onclick="startMonitoring()">
-                        <i class="fas fa-play"></i>
-                        Start Enhanced Monitoring
-                    </button>
-                    <button class="btn btn-danger" id="stopBtn" onclick="stopMonitoring()" disabled>
-                        <i class="fas fa-stop"></i>
-                        Stop & Generate Enhanced Report
-                    </button>
-                    <button class="btn btn-secondary" onclick="takeScreenshot()" id="screenshotBtn" disabled>
-                        <i class="fas fa-camera"></i>
-                        Screenshot
-                    </button>
-                </div>
-
-                <div class="left-card">
-                    <div class="sidebar-header">
-                        <i class="fas fa-heartbeat"></i>
-                        Enhanced System Health
-                    </div>
-                    
-                    <div class="status-health" id="systemHealth">
-                        <div class="health-item">
-                            <span>Camera Status:</span>
-                            <span class="health-status ok" id="cameraHealth">Ready</span>
-                        </div>
-                        <div class="health-item">
-                            <span>Server Connection:</span>
-                            <span class="health-status ok" id="serverHealth">Connected</span>
-                        </div>
-                        <div class="health-item">
-                            <span>File System:</span>
-                            <span class="health-status ok" id="fileHealth">Ready</span>
-                        </div>
-                        <div class="health-item">
-                            <span>Timer Accuracy:</span>
-                            <span class="health-status ok" id="timerHealth">Enhanced</span>
-                        </div>
-                        <div class="health-item">
-                            <span>Video Quality:</span>
-                            <span class="health-status ok" id="videoHealth">Improved</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="left-card">
-                    <div class="sidebar-header">
-                        <i class="fas fa-volume-up"></i>
-                        Alert Configuration
-                    </div>
-                    
-                    <label class="volume-label">Alert volume level:</label>
-                    <select class="volume-select" id="alertVolume">
-                        <option value="0.3">Low</option>
-                        <option value="0.6" selected>Medium</option>
-                        <option value="1.0">High</option>
-                    </select>
-                </div>
-
-                <div class="left-card" style="display: none;" id="downloadsSection">
-                    <div class="sidebar-header">
-                        <i class="fas fa-download"></i>
-                        Enhanced Session Downloads
-                    </div>
-                    <div id="downloadItems">
-                    </div>
-                </div>
+        {% elif result.type == 'video' %}
+        <div class="comparison-view slide-in">
+            <div class="media-section">
+                <h3><i class="fas fa-video" style="margin-right: 8px;"></i>Original Video</h3>
+                <video controls class="media-preview">
+                    <source src="{{ result.file_path }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
             </div>
-
-            <div class="right-column">
-                <div class="sidebar-card">
-                    <div class="connection-status">
-                        <div class="connection-icon">
-                            <i class="fas fa-microchip"></i>
-                        </div>
-                        <div class="connection-text">
-                            <div class="connection-title">Enhanced Monitoring Ready</div>
-                            <div class="connection-subtitle" id="connectionSubtitle">Corrected calculations & improved video recording</div>
-                        </div>
-                    </div>
-
-                    <div class="audio-alert">
-                        <i class="fas fa-volume-up" style="color: var(--text-secondary);"></i>
-                        <span style="flex: 1; font-weight: 500;">Audio Alert</span>
-                        <div class="toggle-switch" onclick="toggleAudioAlert()"></div>
-                    </div>
-
-                    <div class="audio-alert" style="margin-bottom: 0;">
-                        <span style="color: var(--text-secondary); font-size: 0.9rem;" id="audioStatus">Enhanced Sound Alerts Enabled</span>
-                    </div>
-                </div>
-
-                <!-- Enhanced Detection Display -->
-                <div class="sidebar-card">
-                    <div class="sidebar-header">
-                        <i class="fas fa-users"></i>
-                        Enhanced Live Detection Details
-                        <div class="alert-badge" id="detectionBadge" style="display: none;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            ALERT
-                        </div>
-                    </div>
-                    
-                    <div class="detection-info" id="detectionInfo">
-                        <div class="text-center" style="color: var(--text-secondary); padding: 20px;">
-                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
-                            <p>Enhanced detection with corrected timer calculations ready</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-card">
-                    <div class="sidebar-header">
-                        <i class="fas fa-list"></i>
-                        Enhanced Detection Thresholds
-                    </div>
-                    
-                    <div class="thresholds-grid">
-                        <div class="threshold-item threshold-sleep">
-                            <div class="threshold-label">Sleep</div>
-                            <div class="threshold-time">10 seconds</div>
-                        </div>
-                        <div class="threshold-item threshold-yawning">
-                            <div class="threshold-label">Yawning</div>
-                            <div class="threshold-time">3.5 seconds</div>
-                        </div>
-                        <div class="threshold-item threshold-focus">
-                            <div class="threshold-label">No Focus</div>
-                            <div class="threshold-time">10 seconds</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-card">
-                    <div class="sidebar-header">
-                        <i class="fas fa-list"></i>
-                        Enhanced Alert History
-                    </div>
-                    
-                    <div class="alert-history" id="alertHistory">
-                        <div class="text-center" style="color: var(--text-secondary); padding: 20px;">
-                            <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
-                            <p>No alerts yet - enhanced monitoring not started</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="media-section">
+                <h3><i class="fas fa-play" style="margin-right: 8px;"></i>Processed Video</h3>
+                <video controls class="media-preview">
+                    <source src="{{ result.processed_video }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
             </div>
         </div>
-    </div>
+        {% endif %}
 
-    <script>
-        // Enhanced global variables
-        let sessionStartTime = null;
-        let alertCount = 0;
-        let isMonitoring = false;
-        let sessionTimer = null;
-        let dataUpdateTimer = null;
-        let healthCheckTimer = null;
-        let lastAlertIds = new Set();
-        let audioEnabled = true;
-
-        let usingClientCamera = false;
-        let clientVideo = null;
-        let clientCanvas = null;
-        let clientCtx = null;
-        let clientStream = null;
-        let processingInterval = null;
-
-        // Enhanced timer management
-        let clientAlerts = [];
-        let personTimers = {};
-        let personStates = {};
-        let lastStateChange = {};
-        let alertThresholds = {
-            'SLEEPING': 10000,
-            'YAWNING': 3500,
-            'NOT FOCUSED': 10000
-        };
-
-        // Enhanced file system
-        let sessionId = null;
-        let backupAttempts = {};
-        let fileGenerationQueue = [];
-
-        let audioContext = null;
-        let currentDetections = [];
-        let systemHealth = {
-            camera: 'ok',
-            server: 'ok',
-            files: 'ok',
-            timers: 'ok',
-            video: 'ok'
-        };
-
-        // Performance tracking
-        let performanceMetrics = {
-            frameRate: 0,
-            processingTime: 0,
-            alertAccuracy: 0
-        };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeEnhancedPage();
-            setupEnhancedEventListeners();
-            checkCameraSetup();
-            initializeEnhancedAudioSystem();
-            startEnhancedHealthCheck();
-        });
-
-        function initializeEnhancedPage() {
-            document.body.style.opacity = "0";
-            document.body.style.transition = "opacity 0.6s ease";
-            setTimeout(() => {
-                document.body.style.opacity = "1";
-            }, 100);
+        <!-- Detection Summary -->
+        <div class="detection-summary slide-in">
+            <h2 class="title-md text-gradient mb-6">
+                <i class="fas fa-chart-bar" style="margin-right: 8px;"></i>Detection Summary
+            </h2>
             
-            clientVideo = document.getElementById('clientVideo');
-            clientCanvas = document.getElementById('clientCanvas');
-            clientCtx = clientCanvas.getContext('2d');
+            <div class="summary-stats">
+                <div class="stat-box">
+                    <div class="stat-number text-success">{{ result.detections|length }}</div>
+                    <div class="stat-label">Total Persons Detected</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number text-info">
+                        {{ result.detections|selectattr("status", "equalto", "FOCUSED")|list|length }}
+                    </div>
+                    <div class="stat-label">Focused Persons</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number text-warning">
+                        {{ result.detections|selectattr("status", "equalto", "NOT FOCUSED")|list|length }}
+                    </div>
+                    <div class="stat-label">Unfocused Persons</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number text-danger">
+                        {{ (result.detections|selectattr("status", "equalto", "YAWNING")|list|length) + 
+                           (result.detections|selectattr("status", "equalto", "SLEEPING")|list|length) }}
+                    </div>
+                    <div class="stat-label">Attention Issues</div>
+                </div>
+            </div>
+
+            <!-- Overall Status -->
+            {% set focused_count = result.detections|selectattr("status", "equalto", "FOCUSED")|list|length %}
+            {% set total_count = result.detections|length %}
+            {% if total_count > 0 %}
+                {% set focus_percentage = (focused_count / total_count * 100)|round %}
+                <div class="text-center">
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">
+                        Overall Focus Score: 
+                        <span class="{% if focus_percentage >= 80 %}text-success{% elif focus_percentage >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ focus_percentage }}%
+                        </span>
+                    </div>
+                    <p style="color: var(--text-secondary);">
+                        {% if focus_percentage >= 80 %}
+                            Excellent focus levels detected
+                        {% elif focus_percentage >= 60 %}
+                            Moderate focus levels - some attention needed
+                        {% else %}
+                            Low focus levels - immediate attention recommended
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Individual Detection Results -->
+        {% if result.detections %}
+        <div class="slide-in">
+            <h2 class="title-md text-gradient mb-6">
+                <i class="fas fa-users" style="margin-right: 8px;"></i>Individual Analysis
+            </h2>
             
-            // Generate enhanced session ID
-            sessionId = `enhanced_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            console.log('Enhanced session initialized:', sessionId);
-            
-            // Initialize quality indicator
-            updateQualityIndicator('excellent');
-        }
-
-        function initializeEnhancedAudioSystem() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                if ('speechSynthesis' in window) {
-                    console.log('Enhanced speech synthesis available');
-                } else {
-                    console.log('Speech synthesis not available, using enhanced beep alerts only');
-                }
-            } catch (error) {
-                console.log('Enhanced audio initialization failed:', error);
-                updateSystemHealth('timers', 'error');
-            }
-        }
-
-        function startEnhancedHealthCheck() {
-            healthCheckTimer = setInterval(() => {
-                checkEnhancedSystemHealth();
-            }, 5000);
-        }
-
-        async function checkEnhancedSystemHealth() {
-            try {
-                // Check server connection with enhanced endpoint
-                const response = await fetch('/health', { method: 'GET' });
-                const data = await response.json();
-                
-                if (data.status === 'healthy') {
-                    updateSystemHealth('server', 'ok');
-                    updateSystemHealth('files', data.directories?.reports && data.directories?.recordings ? 'ok' : 'error');
+            <div class="detection-grid">
+                {% for detection in result.detections %}
+                <div class="person-card">
+                    <!-- Person Image -->
+                    <img src="{{ detection.image_path }}" alt="Person {{ detection.id }}" class="person-image">
                     
-                    // Check for enhanced features
-                    if (data.version && data.version.includes('enhanced')) {
-                        updateSystemHealth('video', 'ok');
-                    }
-                } else {
-                    updateSystemHealth('server', 'error');
-                }
-                
-                // Check enhanced timer synchronization
-                if (isMonitoring && Object.keys(personTimers).length > 0) {
-                    updateSystemHealth('timers', 'ok');
-                }
-                
-                // Update performance metrics
-                updatePerformanceMetrics();
-                
-            } catch (error) {
-                console.error('Enhanced health check failed:', error);
-                updateSystemHealth('server', 'error');
-            }
-        }
-
-        function updateSystemHealth(component, status) {
-            systemHealth[component] = status;
-            
-            const healthElements = {
-                camera: 'cameraHealth',
-                server: 'serverHealth',
-                files: 'fileHealth',
-                timers: 'timerHealth',
-                video: 'videoHealth'
-            };
-            
-            const element = document.getElementById(healthElements[component]);
-            if (element) {
-                element.className = `health-status ${status}`;
-                const statusText = {
-                    camera: status === 'ok' ? 'Ready' : 'Error',
-                    server: status === 'ok' ? 'Connected' : 'Error',
-                    files: status === 'ok' ? 'Ready' : 'Error',
-                    timers: status === 'ok' ? 'Enhanced' : 'Error',
-                    video: status === 'ok' ? 'Improved' : 'Error'
-                };
-                element.textContent = statusText[component] || (status === 'ok' ? 'Ready' : 'Error');
-            }
-        }
-
-        function updateQualityIndicator(quality) {
-            const indicator = document.getElementById('qualityIndicator');
-            const qualityConfig = {
-                excellent: { text: 'Excellent Quality', class: 'quality-excellent', icon: 'fa-star' },
-                good: { text: 'Good Quality', class: 'quality-good', icon: 'fa-check' },
-                fair: { text: 'Fair Quality', class: 'quality-fair', icon: 'fa-minus' },
-                poor: { text: 'Poor Quality', class: 'quality-poor', icon: 'fa-exclamation' }
-            };
-            
-            const config = qualityConfig[quality] || qualityConfig.excellent;
-            indicator.className = `quality-indicator ${config.class}`;
-            indicator.innerHTML = `<i class="fas ${config.icon}"></i>${config.text}`;
-            
-            if (isMonitoring) {
-                indicator.style.display = 'inline-flex';
-            }
-        }
-
-        function updatePerformanceMetrics() {
-            // Calculate enhanced performance metrics
-            const frameCount = sessionData?.recording_frames?.length || 0;
-            const alertAccuracy = alertCount > 0 ? (alertCount / Math.max(1, frameCount / 100)) : 0;
-            
-            performanceMetrics = {
-                frameRate: frameCount > 0 ? frameCount / Math.max(1, (Date.now() - sessionStartTime) / 1000) : 0,
-                processingTime: processingInterval ? 500 : 0, // ms
-                alertAccuracy: Math.min(100, alertAccuracy * 100)
-            };
-            
-            // Update quality indicator based on performance
-            if (performanceMetrics.frameRate > 8 && performanceMetrics.alertAccuracy > 80) {
-                updateQualityIndicator('excellent');
-            } else if (performanceMetrics.frameRate > 5 && performanceMetrics.alertAccuracy > 60) {
-                updateQualityIndicator('good');
-            } else if (performanceMetrics.frameRate > 3) {
-                updateQualityIndicator('fair');
-            } else {
-                updateQualityIndicator('poor');
-            }
-        }
-
-        function playEnhancedAlertSound(alertType = 'default') {
-            if (!audioEnabled || !audioContext) return;
-
-            try {
-                const volume = parseFloat(document.getElementById('alertVolume').value);
-                
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                // Enhanced frequency mapping
-                const frequencies = {
-                    'SLEEPING': 800,
-                    'YAWNING': 600,
-                    'NOT FOCUSED': 400,
-                    'default': 500
-                };
-                
-                oscillator.frequency.setValueAtTime(frequencies[alertType] || frequencies.default, audioContext.currentTime);
-                oscillator.type = 'sine';
-                
-                // Enhanced audio envelope
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
-                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.6);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.6);
-                
-            } catch (error) {
-                console.error('Enhanced audio playback error:', error);
-            }
-        }
-
-        function speakEnhancedAlertMessage(message) {
-            if (!audioEnabled || !window.speechSynthesis) return;
-
-            try {
-                const utterance = new SpeechSynthesisUtterance(message);
-                const volume = parseFloat(document.getElementById('alertVolume').value);
-                
-                utterance.volume = volume;
-                utterance.rate = 1.0;
-                utterance.pitch = 1.0;
-                
-                // Enhanced voice selection
-                const voices = speechSynthesis.getVoices();
-                const preferredVoice = voices.find(voice => 
-                    voice.lang.includes('en') && voice.name.includes('Google')
-                ) || voices[0];
-                
-                if (preferredVoice) {
-                    utterance.voice = preferredVoice;
-                }
-                
-                window.speechSynthesis.speak(utterance);
-            } catch (error) {
-                console.error('Enhanced speech synthesis error:', error);
-            }
-        }
-
-        async function checkCameraSetup() {
-            try {
-                const response = await fetch('/check_camera');
-                const data = await response.json();
-                
-                if (!data.camera_available) {
-                    usingClientCamera = true;
-                    document.getElementById('connectionSubtitle').textContent = 'Using device camera (Enhanced Railway/ngrok mode)';
-                    console.log('Using enhanced client-side camera for Railway/ngrok compatibility');
-                }
-                updateSystemHealth('camera', 'ok');
-            } catch (error) {
-                usingClientCamera = true;
-                document.getElementById('connectionSubtitle').textContent = 'Using device camera (Enhanced fallback mode)';
-                console.log('Enhanced fallback to client-side camera');
-                updateSystemHealth('camera', 'error');
-            }
-        }
-
-        function setupEnhancedEventListeners() {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    if (this.getAttribute('href').startsWith('/')) {
-                        e.preventDefault();
-                        document.body.style.opacity = "0";
-                        setTimeout(() => {
-                            window.location.href = this.getAttribute('href');
-                        }, 300);
-                    }
-                });
-            });
-
-            // Enhanced keyboard shortcuts
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    if (isMonitoring) {
-                        stopMonitoring();
-                    }
-                }
-                if (e.key === ' ') {
-                    e.preventDefault();
-                    if (isMonitoring) {
-                        takeScreenshot();
-                    }
-                }
-                if (e.ctrlKey && e.key === 's') {
-                    e.preventDefault();
-                    if (!isMonitoring) {
-                        startMonitoring();
-                    } else {
-                        stopMonitoring();
-                    }
-                }
-            });
-
-            document.getElementById('alertVolume').addEventListener('change', function() {
-                showEnhancedNotification(`Enhanced alert volume changed to ${this.selectedOptions[0].text}`, 'info');
-            });
-
-            document.addEventListener('click', function() {
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-            }, { once: true });
-        }
-
-        function toggleAudioAlert() {
-            audioEnabled = !audioEnabled;
-            const toggle = document.querySelector('.toggle-switch');
-            const statusText = document.getElementById('audioStatus');
-            
-            if (audioEnabled) {
-                toggle.classList.remove('off');
-                statusText.textContent = 'Enhanced Sound Alerts Enabled';
-                statusText.style.color = 'var(--success)';
-            } else {
-                toggle.classList.add('off');
-                statusText.textContent = 'Enhanced Sound Alerts Disabled';
-                statusText.style.color = 'var(--text-muted)';
-            }
-        }
-
-        async function startMonitoring() {
-            try {
-                // Reset all enhanced tracking variables
-                clientAlerts = [];
-                personTimers = {};
-                personStates = {};
-                lastStateChange = {};
-                alertCount = 0;
-                currentDetections = [];
-                backupAttempts = {};
-                fileGenerationQueue = [];
-
-                const response = await fetch('/start_monitoring', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: sessionId })
-                });
-                const data = await response.json();
-                
-                if (data.status !== 'success') {
-                    throw new Error(data.message);
-                }
-
-                if (usingClientCamera) {
-                    await initializeEnhancedClientCamera();
-                } else {
-                    initializeServerCamera();
-                }
-
-                updateUIForActiveEnhancedMonitoring();
-                startEnhancedDataUpdates();
-                showEnhancedNotification('Enhanced monitoring started with corrected calculations and improved video quality', 'success');
-                updateSystemHealth('timers', 'ok');
-                updateSystemHealth('video', 'ok');
-            } catch (error) {
-                showEnhancedNotification('Failed to start enhanced monitoring: ' + error.message, 'error');
-                updateSystemHealth('server', 'error');
-            }
-        }
-
-        async function initializeEnhancedClientCamera() {
-            try {
-                clientStream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        width: { ideal: 640 }, 
-                        height: { ideal: 480 }, 
-                        facingMode: 'user',
-                        frameRate: { ideal: 15, max: 30 } // Enhanced frame rate control
-                    }
-                });
-                
-                clientVideo.srcObject = clientStream;
-                await new Promise((resolve) => {
-                    clientVideo.onloadedmetadata = resolve;
-                });
-                
-                clientVideo.style.display = 'none';
-                clientCanvas.style.display = 'block';
-                
-                // Enhanced processing interval for better video quality
-                processingInterval = setInterval(processEnhancedClientFrame, 400); // Improved from 500ms
-                updateSystemHealth('camera', 'ok');
-                updateSystemHealth('video', 'ok');
-                
-            } catch (error) {
-                updateSystemHealth('camera', 'error');
-                throw new Error('Failed to access device camera: ' + error.message);
-            }
-        }
-
-        function initializeServerCamera() {
-            document.getElementById('videoStream').src = '/video_feed';
-            document.getElementById('videoStream').style.display = 'block';
-        }
-
-        function processEnhancedClientFrame() {
-            if (!clientVideo || !isMonitoring || !clientStream) return;
-
-            try {
-                const startTime = performance.now();
-                
-                clientCtx.drawImage(clientVideo, 0, 0, clientCanvas.width, clientCanvas.height);
-                
-                const frameData = clientCanvas.toDataURL('image/jpeg', 0.85); // Enhanced quality
-
-                fetch('/process_frame', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        frame: frameData,
-                        sessionId: sessionId,
-                        timestamp: Date.now(),
-                        quality: 'enhanced'
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.processed_frame) {
-                        const img = new Image();
-                        img.onload = function() {
-                            clientCtx.drawImage(img, 0, 0, clientCanvas.width, clientCanvas.height);
-                        };
-                        img.src = data.processed_frame;
-
-                        if (data.detections && data.detections.length > 0) {
-                            processEnhancedDetectionAlerts(data.detections);
-                        } else {
-                            // Clear current detections if no persons detected
-                            currentDetections = [];
-                            updateEnhancedDetectionDisplay();
-                        }
-                        updateSystemHealth('server', 'ok');
-                        
-                        // Update processing time metrics
-                        const processingTime = performance.now() - startTime;
-                        performanceMetrics.processingTime = processingTime;
-                    }
-                })
-                .catch(error => {
-                    console.error('Enhanced frame processing error:', error);
-                    updateSystemHealth('server', 'error');
-                });
-
-            } catch (error) {
-                console.error('Enhanced frame capture error:', error);
-                updateSystemHealth('camera', 'error');
-            }
-        }
-
-        // Enhanced detection processing with improved accuracy
-        function processEnhancedDetectionAlerts(detections) {
-            const currentTime = Date.now();
-            currentDetections = detections;
-
-            detections.forEach(detection => {
-                const personId = `person_${detection.id}`;
-                const currentState = detection.status;
-
-                // Initialize enhanced tracking for new person
-                if (!personTimers[personId]) {
-                    personTimers[personId] = {};
-                    personStates[personId] = null;
-                    lastStateChange[personId] = currentTime;
-                }
-
-                // Check for state change with enhanced logging
-                if (personStates[personId] !== currentState) {
-                    console.log(`Enhanced: Person ${detection.id} state changed: ${personStates[personId]} -> ${currentState}`);
+                    <!-- Status Badge -->
+                    <div class="status-badge 
+                        {% if detection.status == 'FOCUSED' %}focused
+                        {% elif detection.status == 'NOT FOCUSED' %}unfocused
+                        {% elif detection.status == 'YAWNING' %}yawning
+                        {% elif detection.status == 'SLEEPING' %}sleeping
+                        {% endif %}">
+                        <span class="status-indicator 
+                            {% if detection.status == 'FOCUSED' %}status-focused
+                            {% elif detection.status == 'NOT FOCUSED' %}status-unfocused
+                            {% elif detection.status == 'YAWNING' %}status-yawning
+                            {% elif detection.status == 'SLEEPING' %}status-sleeping
+                            {% endif %}"></span>
+                        {{ detection.status }}
+                    </div>
                     
-                    // Reset timer for new state
-                    personStates[personId] = currentState;
-                    lastStateChange[personId] = currentTime;
-                    
-                    // Start timer for problematic states
-                    if (alertThresholds[currentState]) {
-                        personTimers[personId][currentState] = currentTime;
-                        console.log(`Enhanced: Started timer for ${personId} in state ${currentState}`);
-                    } else {
-                        // Clear timers for FOCUSED state
-                        personTimers[personId] = {};
-                    }
-                } else {
-                    // State unchanged, check for alerts with enhanced accuracy
-                    if (alertThresholds[currentState] && personTimers[personId][currentState]) {
-                        const duration = currentTime - personTimers[personId][currentState];
-                        const thresholdMs = alertThresholds[currentState];
-                        
-                        // Trigger alert when threshold is reached
-                        if (duration >= thresholdMs) {
-                            triggerEnhancedClientAlert(detection.id, currentState, Math.floor(duration / 1000));
-                            
-                            // Reset timer to prevent spam (enhanced cooldown)
-                            personTimers[personId][currentState] = currentTime + 6000; // Increased cooldown
-                        }
-                    }
-                }
-            });
-
-            // Remove tracking for persons no longer detected
-            const currentPersonIds = detections.map(d => `person_${d.id}`);
-            Object.keys(personTimers).forEach(personId => {
-                if (!currentPersonIds.includes(personId)) {
-                    delete personTimers[personId];
-                    delete personStates[personId];
-                    delete lastStateChange[personId];
-                }
-            });
-
-            updateEnhancedUIWithDetections(detections);
-            updateEnhancedDetectionDisplay();
-            updateSystemHealth('timers', 'ok');
-        }
-
-        function updateEnhancedDetectionDisplay() {
-            const detectionInfo = document.getElementById('detectionInfo');
-            const detectionBadge = document.getElementById('detectionBadge');
-            
-            if (currentDetections.length === 0) {
-                detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No persons detected in frame</p></div>';
-                detectionBadge.style.display = 'none';
-                return;
-            }
-
-            let hasActiveAlert = false;
-            const currentTime = Date.now();
-            
-            const detectionHTML = currentDetections.map(detection => {
-                const personId = `person_${detection.id}`;
-                const currentState = detection.status;
-                const stateClass = currentState.toLowerCase().replace(' ', '-');
-                
-                let timerDisplay = '';
-                let progressPercent = 0;
-                let showAlert = false;
-                
-                if (alertThresholds[currentState] && personTimers[personId] && personTimers[personId][currentState]) {
-                    const startTime = personTimers[personId][currentState];
-                    const duration = Math.max(0, currentTime - startTime);
-                    const threshold = alertThresholds[currentState];
-                    const durationSeconds = Math.floor(duration / 1000);
-                    const thresholdSeconds = Math.floor(threshold / 1000);
-                    
-                    progressPercent = Math.min(100, (duration / threshold) * 100);
-                    timerDisplay = `${durationSeconds}s / ${thresholdSeconds}s`;
-                    
-                    if (duration >= threshold) {
-                        showAlert = true;
-                        hasActiveAlert = true;
-                    }
-                } else if (currentState === 'FOCUSED') {
-                    timerDisplay = 'FOCUSED';
-                    progressPercent = 100;
-                } else {
-                    // Just started detection of problematic state
-                    const threshold = alertThresholds[currentState] || 1000;
-                    const thresholdSeconds = Math.floor(threshold / 1000);
-                    timerDisplay = `0s / ${thresholdSeconds}s`;
-                    progressPercent = 0;
-                }
-
-                return `
-                    <div class="detection-item ${stateClass}">
-                        <div class="detection-details">
-                            <div class="detection-person">
-                                Person ${detection.id}
-                                ${showAlert ? '<span class="alert-badge"><i class="fas fa-exclamation-triangle"></i>ALERT</span>' : ''}
-                            </div>
-                            <div class="detection-status">Enhanced: ${currentState}</div>
-                            <div class="detection-confidence">Confidence: ${(detection.confidence * 100).toFixed(1)}%</div>
+                    <!-- Person Details -->
+                    <div class="person-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Person ID:</span>
+                            <span class="detail-value">#{{ detection.id }}</span>
                         </div>
-                        <div class="detection-timer-section">
-                            <div class="detection-timer ${stateClass}">${timerDisplay}</div>
-                            ${currentState !== 'FOCUSED' ? `
-                                <div class="detection-progress">
-                                    <div class="detection-progress-bar ${stateClass}" style="width: ${progressPercent}%"></div>
-                                </div>
-                                <div class="threshold-text">Enhanced threshold</div>
-                            ` : `
-                                <div class="quality-indicator quality-excellent">
-                                    <i class="fas fa-check"></i>
-                                    Focused
-                                </div>
-                            `}
+                        <div class="detail-row">
+                            <span class="detail-label">Confidence:</span>
+                            <span class="detail-value">{{ (detection.confidence * 100)|round(1) }}%</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Position:</span>
+                            <span class="detail-value">
+                                X: {{ detection.bbox[0] }}, Y: {{ detection.bbox[1] }}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Size:</span>
+                            <span class="detail-value">
+                                {{ detection.bbox[2] }} × {{ detection.bbox[3] }}
+                            </span>
                         </div>
                     </div>
-                `;
-            }).join('');
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
-            detectionInfo.innerHTML = detectionHTML;
-            detectionBadge.style.display = hasActiveAlert ? 'inline-flex' : 'none';
-        }
-
-        function triggerEnhancedClientAlert(personId, alertType, duration) {
-            const alertTime = new Date().toLocaleTimeString();
-            const alertMessage = getEnhancedAlertMessage(personId, alertType);
+        <!-- Download Section -->
+        <div class="download-section slide-in">
+            <h2 class="title-md text-gradient mb-4">
+                <i class="fas fa-download" style="margin-right: 8px;"></i>Download Results
+            </h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Download processed files and analysis reports</p>
             
-            const alert = {
-                id: `${sessionId}_${personId}_${alertType}_${Date.now()}`,
-                time: alertTime,
-                person: `Person ${personId}`,
-                detection: alertType,
-                message: alertMessage,
-                duration: duration,
-                type: alertType === 'SLEEPING' ? 'error' : 'warning',
-                sessionId: sessionId,
-                enhanced: true
-            };
-
-            clientAlerts.unshift(alert);
-            
-            if (clientAlerts.length > 75) { // Increased history for better tracking
-                clientAlerts = clientAlerts.slice(0, 75);
-            }
-
-            alertCount++;
-            document.getElementById('alertCount').textContent = alertCount;
-
-            playEnhancedAlertSound(alertType);
-            
-            setTimeout(() => {
-                speakEnhancedAlertMessage(alertMessage);
-            }, 500);
-
-            updateEnhancedClientAlertHistory();
-            showEnhancedNotification(alertMessage, alert.type);
-            
-            // Enhanced file backup
-            queueEnhancedFileGeneration('alert', alert);
-            
-            console.log('Enhanced alert triggered:', alert);
-        }
-
-        function queueEnhancedFileGeneration(type, data) {
-            const item = {
-                type: type,
-                data: data,
-                timestamp: Date.now(),
-                attempts: 0,
-                sessionId: sessionId,
-                enhanced: true
-            };
-            
-            fileGenerationQueue.push(item);
-            processEnhancedFileQueue();
-        }
-
-        async function processEnhancedFileQueue() {
-            if (fileGenerationQueue.length === 0) return;
-            
-            const item = fileGenerationQueue[0];
-            
-            try {
-                if (item.type === 'alert' && item.attempts < 5) { // Increased retry attempts
-                    // Enhanced server communication
-                    const response = await fetch('/sync_alerts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            alerts: [item.data],
-                            sessionId: sessionId,
-                            enhanced: true
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        fileGenerationQueue.shift(); // Remove processed item
-                        updateSystemHealth('files', 'ok');
-                    } else {
-                        throw new Error('Enhanced server queue failed');
-                    }
-                }
-            } catch (error) {
-                console.error('Enhanced file queue processing error:', error);
-                item.attempts++;
-                
-                if (item.attempts >= 5) {
-                    fileGenerationQueue.shift(); // Remove failed item
-                    updateSystemHealth('files', 'error');
-                } else {
-                    // Enhanced retry with exponential backoff
-                    setTimeout(processEnhancedFileQueue, 3000 * item.attempts);
-                }
-            }
-        }
-
-        function getEnhancedAlertMessage(personId, alertType) {
-            const messages = {
-                'SLEEPING': `Enhanced Alert: Person ${personId} is sleeping - please wake up!`,
-                'YAWNING': `Enhanced Alert: Person ${personId} is yawning - consider taking a rest!`,
-                'NOT FOCUSED': `Enhanced Alert: Person ${personId} is not focused - please refocus on screen!`
-            };
-            return messages[alertType] || `Enhanced Alert: Person ${personId} attention alert`;
-        }
-
-        function updateEnhancedUIWithDetections(detections) {
-            document.getElementById('totalPersons').textContent = detections.length;
-            
-            const focusedCount = detections.filter(d => d.status === 'FOCUSED').length;
-            document.getElementById('focusedCount').textContent = focusedCount;
-
-            let overallStatus = 'FOCUSED';
-            if (detections.some(d => d.status === 'SLEEPING')) {
-                overallStatus = 'SLEEPING';
-            } else if (detections.some(d => d.status === 'YAWNING')) {
-                overallStatus = 'YAWNING';
-            } else if (detections.some(d => d.status === 'NOT FOCUSED')) {
-                overallStatus = 'NOT FOCUSED';
-            }
-
-            updateEnhancedCurrentStatus(overallStatus);
-        }
-
-        function updateEnhancedClientAlertHistory() {
-            const alertHistory = document.getElementById('alertHistory');
-            
-            if (clientAlerts.length === 0) {
-                alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No enhanced alerts yet in this session.</p></div>';
-                return;
-            }
-
-            alertHistory.innerHTML = clientAlerts.slice(0, 20).map(alert => 
-                `<div class="alert-item" style="border-left-color: ${alert.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 500; margin-bottom: 4px;">${alert.message}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">
-                            Duration: ${alert.duration}s | Enhanced Session: ${alert.sessionId.substr(-8)}
-                            ${alert.enhanced ? '<span class="quality-indicator quality-excellent"><i class="fas fa-check"></i>Enhanced</span>' : ''}
-                        </div>
-                    </div>
-                    <div class="alert-time">${alert.time}</div>
-                </div>`
-            ).join('');
-        }
-
-        async function stopMonitoring() {
-            try {
-                // Enhanced stop with comprehensive data collection
-                const stopData = {
-                    sessionId: sessionId,
-                    alerts: clientAlerts,
-                    personTimers: personTimers,
-                    totalAlerts: alertCount,
-                    enhanced: true,
-                    performanceMetrics: performanceMetrics
-                };
-
-                const response = await fetch('/stop_monitoring', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(stopData)
-                });
-                const data = await response.json();
-
-                updateUIForInactiveEnhancedMonitoring();
-                stopEnhancedDataUpdates();
-
-                if (clientStream) {
-                    clientStream.getTracks().forEach(track => track.stop());
-                    clientStream = null;
-                }
-
-                if (processingInterval) {
-                    clearInterval(processingInterval);
-                    processingInterval = null;
-                }
-
-                // Reset all enhanced tracking
-                personTimers = {};
-                personStates = {};
-                lastStateChange = {};
-                currentDetections = [];
-                updateEnhancedDetectionDisplay();
-
-                showEnhancedNotification(`Enhanced session complete! Generated ${alertCount} alerts with corrected accuracy calculations.`, 'success');
-                
-                // Enhanced file download with improved backup system
-                setTimeout(() => {
-                    attemptEnhancedFileDownload(data);
-                }, 2000);
-                
-            } catch (error) {
-                showEnhancedNotification('Failed to stop enhanced monitoring: ' + error.message, 'error');
-                updateSystemHealth('server', 'error');
-            }
-        }
-
-        async function attemptEnhancedFileDownload(data) {
-            let pdfUrl = data.pdf_report;
-            let videoUrl = data.video_file;
-            
-            // Enhanced backup URL system
-            if (!pdfUrl) {
-                const backupUrls = [
-                    `/static/reports/enhanced_report_${sessionId}.pdf`,
-                    `/static/reports/enhanced_report_latest.pdf`,
-                    `/static/reports/session_report_${sessionId}.pdf`,
-                    `/download/enhanced_report/${sessionId}`
-                ];
-                
-                for (const url of backupUrls) {
-                    try {
-                        const response = await fetch(url, { method: 'HEAD' });
-                        if (response.ok) {
-                            pdfUrl = url;
-                            break;
-                        }
-                    } catch (e) {
-                        console.log(`Enhanced backup PDF URL failed: ${url}`);
-                    }
-                }
-            }
-            
-            if (!videoUrl) {
-                const backupUrls = [
-                    `/static/recordings/enhanced_recording_${sessionId}.mp4`,
-                    `/static/recordings/enhanced_recording_latest.mp4`,
-                    `/static/recordings/session_recording_${sessionId}.mp4`,
-                    `/download/enhanced_recording/${sessionId}`
-                ];
-                
-                for (const url of backupUrls) {
-                    try {
-                        const response = await fetch(url, { method: 'HEAD' });
-                        if (response.ok) {
-                            videoUrl = url;
-                            break;
-                        }
-                    } catch (e) {
-                        console.log(`Enhanced backup video URL failed: ${url}`);
-                    }
-                }
-            }
-            
-            if (pdfUrl || videoUrl) {
-                showEnhancedDownloads(pdfUrl, videoUrl);
-                updateSystemHealth('files', 'ok');
-            } else {
-                showEnhancedNotification('Enhanced files are being generated. Please check downloads in a few moments.', 'warning');
-                // Enhanced retry with better timing
-                setTimeout(() => attemptEnhancedFileDownload(data), 15000);
-                updateSystemHealth('files', 'error');
-            }
-        }
-
-        function updateUIForInactiveEnhancedMonitoring() {
-            isMonitoring = false;
-            
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('screenshotBtn').disabled = true;
-            
-            const liveIndicator = document.getElementById('liveIndicator');
-            const liveDot = document.getElementById('liveDot');
-            const liveText = document.getElementById('liveText');
-            
-            liveIndicator.classList.remove('active');
-            liveDot.classList.remove('active');
-            liveText.textContent = 'READY';
-            
-            document.getElementById('videoStream').style.display = 'none';
-            document.getElementById('videoStream').src = '';
-            document.getElementById('clientVideo').style.display = 'none';
-            document.getElementById('clientCanvas').style.display = 'none';
-            document.getElementById('videoPlaceholder').style.display = 'block';
-            
-            updateEnhancedCurrentStatus('READY');
-            
-            if (sessionTimer) {
-                clearInterval(sessionTimer);
-                sessionTimer = null;
-            }
-            
-            document.getElementById('totalPersons').textContent = '0';
-            document.getElementById('focusedCount').textContent = '0';
-            
-            // Hide quality indicator
-            const qualityIndicator = document.getElementById('qualityIndicator');
-            qualityIndicator.style.display = 'none';
-            
-            // Reset enhanced detection display
-            const detectionInfo = document.getElementById('detectionInfo');
-            detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Enhanced detection with corrected calculations ready</p></div>';
-            
-            const detectionBadge = document.getElementById('detectionBadge');
-            detectionBadge.style.display = 'none';
-        }
-
-        function updateUIForActiveEnhancedMonitoring() {
-            isMonitoring = true;
-            sessionStartTime = Date.now();
-            
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('screenshotBtn').disabled = false;
-            
-            const liveIndicator = document.getElementById('liveIndicator');
-            const liveDot = document.getElementById('liveDot');
-            const liveText = document.getElementById('liveText');
-            
-            liveIndicator.classList.add('active');
-            liveDot.classList.add('active');
-            liveText.textContent = 'LIVE • ENHANCED';
-            
-            document.getElementById('videoPlaceholder').style.display = 'none';
-            
-            updateEnhancedCurrentStatus('READY');
-            startEnhancedSessionTimer();
-            
-            // Show quality indicator
-            const qualityIndicator = document.getElementById('qualityIndicator');
-            qualityIndicator.style.display = 'inline-flex';
-            
-            const alertHistory = document.getElementById('alertHistory');
-            alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Enhanced monitoring started - corrected calculations active...</p></div>';
-            
-            const detectionInfo = document.getElementById('detectionInfo');
-            detectionInfo.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-search" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>Enhanced monitoring active - waiting for detections...</p></div>';
-            
-            lastAlertIds.clear();
-        }
-
-        function startEnhancedDataUpdates() {
-            dataUpdateTimer = setInterval(() => {
-                if (isMonitoring && !usingClientCamera) {
-                    fetch('/get_monitoring_data')
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.error) {
-                                updateEnhancedMonitoringDisplay(data);
-                                updateEnhancedAlerts(data.latest_alerts || []);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Failed to fetch enhanced monitoring data:', error);
-                            updateSystemHealth('server', 'error');
-                        });
-                }
-            }, 2000);
-        }
-
-        function stopEnhancedDataUpdates() {
-            if (dataUpdateTimer) {
-                clearInterval(dataUpdateTimer);
-                dataUpdateTimer = null;
-            }
-        }
-
-        function updateEnhancedMonitoringDisplay(data) {
-            document.getElementById('totalPersons').textContent = data.total_persons || 0;
-            document.getElementById('focusedCount').textContent = data.focused_count || 0;
-            document.getElementById('alertCount').textContent = data.alert_count || 0;
-            
-            const currentStatus = data.current_status || 'READY';
-            updateEnhancedCurrentStatus(currentStatus);
-        }
-
-        function updateEnhancedCurrentStatus(status) {
-            const statusElement = document.getElementById('currentStatus');
-            const statusClasses = ['status-ready', 'status-focused', 'status-unfocused', 'status-yawning', 'status-sleeping'];
-            
-            statusClasses.forEach(cls => statusElement.classList.remove(cls));
-            
-            let statusClass, message;
-            switch(status) {
-                case 'FOCUSED':
-                    statusClass = 'status-focused';
-                    message = 'All persons focused - Enhanced tracking with corrected calculations active';
-                    break;
-                case 'NOT FOCUSED':
-                    statusClass = 'status-unfocused';
-                    message = 'Attention drift detected - Enhanced timer accuracy in progress';
-                    break;
-                case 'YAWNING':
-                    statusClass = 'status-yawning';
-                    message = 'Fatigue signs detected - Enhanced monitoring with improved alerts';
-                    break;
-                case 'SLEEPING':
-                    statusClass = 'status-sleeping';
-                    message = 'Sleep detected - Enhanced alert system with corrected timing';
-                    break;
-                default:
-                    statusClass = 'status-ready';
-                    message = 'Enhanced monitoring ready - Corrected calculations & improved video quality';
-            }
-            
-            statusElement.classList.add(statusClass);
-            statusElement.innerHTML = `
-                <span class="status-indicator ${statusClass.replace('status-', 'status-')}"></span>
-                ${message}
-            `;
-        }
-
-        function updateEnhancedAlerts(alerts) {
-            if (usingClientCamera) return;
-            
-            const alertHistory = document.getElementById('alertHistory');
-            
-            if (alerts.length === 0) {
-                alertHistory.innerHTML = '<div class="text-center" style="color: var(--text-secondary); padding: 20px;"><i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i><p>No recent enhanced alerts.</p></div>';
-                return;
-            }
-
-            alertHistory.innerHTML = alerts.map(alert => 
-                `<div class="alert-item" style="border-left-color: ${alert.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 500; margin-bottom: 4px;">Enhanced: ${alert.message}</div>
-                    </div>
-                    <div class="alert-time">${alert.time}</div>
-                </div>`
-            ).join('');
-        }
-
-        function startEnhancedSessionTimer() {
-            sessionTimer = setInterval(() => {
-                if (sessionStartTime && isMonitoring) {
-                    const elapsed = Date.now() - sessionStartTime;
-                    const hours = Math.floor(elapsed / 3600000);
-                    const minutes = Math.floor((elapsed % 3600000) / 60000);
-                    const seconds = Math.floor((elapsed % 60000) / 1000);
-                    document.getElementById('sessionTime').textContent = 
-                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }
-            }, 1000);
-        }
-
-        function showEnhancedDownloads(pdfReport, videoFile) {
-            const downloadsSection = document.getElementById('downloadsSection');
-            const downloadItems = document.getElementById('downloadItems');
-            
-            downloadItems.innerHTML = '';
-            
-            if (pdfReport) {
-                const pdfItem = document.createElement('div');
-                pdfItem.className = 'download-item';
-                pdfItem.innerHTML = `
+            <div class="download-grid">
+                {% if result.type == 'image' %}
+                <div class="download-item">
                     <div class="download-info">
                         <div class="file-icon">
-                            <i class="fas fa-file-pdf"></i>
+                            <i class="fas fa-image"></i>
                         </div>
                         <div>
-                            <div style="font-weight: 600;">Enhanced Session Report</div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                                PDF with ${alertCount} alerts & corrected calculations
-                                <span class="quality-indicator quality-excellent">
-                                    <i class="fas fa-star"></i>
-                                    Enhanced
-                                </span>
-                            </div>
+                            <div style="font-weight: 600;">Processed Image</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">With detection overlay</div>
                         </div>
                     </div>
-                    <a href="${pdfReport}" download class="btn btn-primary">
+                    <a href="{{ result.processed_image }}" download class="btn btn-primary">
                         <i class="fas fa-download"></i>
                     </a>
-                `;
-                downloadItems.appendChild(pdfItem);
-            }
-            
-            if (videoFile) {
-                const videoItem = document.createElement('div');
-                videoItem.className = 'download-item';
-                videoItem.innerHTML = `
+                </div>
+                {% elif result.type == 'video' %}
+                <div class="download-item">
                     <div class="download-info">
                         <div class="file-icon">
                             <i class="fas fa-video"></i>
                         </div>
                         <div>
-                            <div style="font-weight: 600;">Enhanced Session Recording</div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                                Improved quality video with face landmarks
-                                <span class="quality-indicator quality-excellent">
-                                    <i class="fas fa-star"></i>
-                                    Enhanced
-                                </span>
-                            </div>
+                            <div style="font-weight: 600;">Processed Video</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">With detection overlay</div>
                         </div>
                     </div>
-                    <a href="${videoFile}" download class="btn btn-secondary">
+                    <a href="{{ result.processed_video }}" download class="btn btn-primary">
                         <i class="fas fa-download"></i>
                     </a>
-                `;
-                downloadItems.appendChild(videoItem);
-            }
-            
-            downloadsSection.style.display = 'block';
-        }
-
-        function takeScreenshot() {
-            if (clientCanvas && isMonitoring) {
-                try {
-                    const link = document.createElement('a');
-                    link.download = `enhanced_focus_screenshot_${sessionId}_${Date.now()}.png`;
-                    link.href = clientCanvas.toDataURL();
-                    link.click();
-                    showEnhancedNotification('Enhanced screenshot captured with improved detection overlay', 'success');
-                } catch (error) {
-                    showEnhancedNotification('Enhanced screenshot failed', 'error');
-                }
-            } else {
-                showEnhancedNotification('Enhanced screenshot captured successfully', 'success');
-            }
-        }
-
-        function showEnhancedNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            
-            const colors = {
-                success: 'var(--success)',
-                warning: 'var(--warning)',
-                error: 'var(--danger)',
-                info: 'var(--info)'
-            };
-            
-            const icons = {
-                success: 'fa-check-circle',
-                warning: 'fa-exclamation-triangle',
-                error: 'fa-times-circle',
-                info: 'fa-info-circle'
-            };
-            
-            notification.innerHTML = `
-                <div class="notification-content">
-                    <i class="fas ${icons[type] || icons.info} notification-icon" style="color: ${colors[type] || colors.info};"></i>
-                    <span class="notification-text">${message}</span>
-                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 8000); // Longer display time for enhanced notifications
-        }
+                {% endif %}
+                
+                {% if result.pdf_report %}
+                <div class="download-item">
+                    <div class="download-info">
+                        <div class="file-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">Analysis Report</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Detailed PDF report</div>
+                        </div>
+                    </div>
+                    <a href="{{ result.pdf_report }}" download class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
 
-        // Enhanced cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (clientStream) {
-                clientStream.getTracks().forEach(track => track.stop());
-            }
-            if (healthCheckTimer) {
-                clearInterval(healthCheckTimer);
-            }
-            if (dataUpdateTimer) {
-                clearInterval(dataUpdateTimer);
-            }
-            if (sessionTimer) {
-                clearInterval(sessionTimer);
-            }
-            if (processingInterval) {
-                clearInterval(processingInterval);
-            }
+        <!-- Action Buttons -->
+        <div class="action-buttons slide-in">
+            <a href="/upload" class="btn btn-primary">
+                <i class="fas fa-upload" style="margin-right: 8px;"></i>
+                Analyze Another File
+            </a>
+            <a href="/webcam" class="btn btn-secondary">
+                <i class="fas fa-video" style="margin-right: 8px;"></i>
+                Start Live Monitoring
+            </a>
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-home" style="margin-right: 8px;"></i>
+                Back to Home
+            </a>
+        </div>
+        
+        {% else %}
+        <!-- No Results -->
+        <div class="text-center slide-in">
+            <div class="glass-card p-8">
+                <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: var(--warning); margin-bottom: 16px;"></i>
+                <h2 class="title-md text-gradient mb-4">No Results Found</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                    There was an issue processing your file or no faces were detected.
+                </p>
+                <a href="/upload" class="btn btn-primary">
+                    <i class="fas fa-redo" style="margin-right: 8px;"></i>
+                    Try Again
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Initialize animations
+        document.body.style.opacity = "0";
+        document.body.style.transition = "opacity 0.5s";
+        
+        window.addEventListener('load', function() {
+            document.body.style.opacity = "1";
         });
 
-        // Enhanced keyboard shortcuts info
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F1') {
-                e.preventDefault();
-                showEnhancedNotification('Enhanced Keyboard Shortcuts: Ctrl+S (Start/Stop), Space (Screenshot), Escape (Stop)', 'info');
+        // Navigation with smooth transitions
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                if (this.getAttribute('href').startsWith('/')) {
+                    e.preventDefault();
+                    document.body.style.opacity = "0";
+                    setTimeout(() => {
+                        window.location.href = this.getAttribute('href');
+                    }, 300);
+                }
+            });
+        });
+
+        // Button hover effects
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px) scale(1.05)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Card hover animations
+        document.querySelectorAll('.person-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            const perfData = performance.getEntriesByType('navigation')[0];
+            if (perfData) {
+                const loadTime = perfData.loadEventEnd - perfData.fetchStart;
+                console.log(`Results page loaded in ${loadTime}ms`);
             }
         });
     </script>
