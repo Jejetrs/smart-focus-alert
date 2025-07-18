@@ -1,4 +1,4 @@
-# FIXED: Accurate Duration Calculation System untuk Railway deployment
+# app.py - FIXED Synchronized Duration Tracking System
 from flask import Flask, render_template, request, Response, jsonify, send_file, send_from_directory
 from werkzeug.utils import secure_filename
 import mediapipe as mp
@@ -48,11 +48,11 @@ for folder in [application.config['UPLOAD_FOLDER'], application.config['DETECTED
     except Exception as e:
         print(f"Error creating directory {folder}: {str(e)}")
 
-# FIXED: Enhanced global variables for ACCURATE duration tracking
+# FIXED: Enhanced global variables for synchronized tracking
 monitoring_lock = threading.RLock()
 live_monitoring_active = False
 
-# FIXED: Accurate session data structure
+# FIXED: Synchronized session data structure
 session_data = {
     'start_time': None,
     'end_time': None,
@@ -79,8 +79,8 @@ session_data = {
 video_writer = None
 recording_active = False
 
-# FIXED: ACCURATE person tracking with exact duration calculation
-person_distraction_sessions = {}  # Track exact continuous distraction durations
+# FIXED: Synchronized person tracking with accurate duration calculation
+person_distraction_sessions = {}  # Track actual continuous distraction durations
 person_current_states = {}       # Current state of each person
 person_state_start_times = {}    # When current state started (timestamp)
 last_alert_times = {}            # Last time alert was triggered for each person
@@ -93,8 +93,8 @@ DISTRACTION_THRESHOLDS = {
     'NOT FOCUSED': 10    # 10 seconds
 }
 
-# FIXED: 2-second cooldown for reminder alerts
-ALERT_COOLDOWN = 5.0  # 2 seconds between repeated alerts for same distraction
+# FIXED: Reduced cooldown for better user experience (2 seconds as requested)
+ALERT_COOLDOWN = 2.0  # 2 seconds between repeated alerts for same distraction
 
 # Frame recording configuration
 FRAME_STORAGE_INTERVAL = 2
@@ -283,9 +283,9 @@ def detect_drowsiness(frame, landmarks, speech_engine=None):
         print(f"Drowsiness detection error: {str(e)}")
         return {"state": "FOCUSED"}, "FOCUSED"
 
-# FIXED: ACCURATE distraction session tracking with NO DOUBLE COUNTING
-def update_distraction_sessions_accurate(person_id, current_state, current_time):
-    """FIXED: ACCURATE distraction session tracking with exact duration calculation"""
+# FIXED: Synchronized distraction session tracking
+def update_distraction_sessions_synchronized(person_id, current_state, current_time):
+    """FIXED: Synchronized distraction session tracking with real-time display"""
     global person_distraction_sessions, person_current_states, person_state_start_times
     global session_data, session_start_time
     
@@ -301,13 +301,13 @@ def update_distraction_sessions_accurate(person_id, current_state, current_time)
     previous_state = person_current_states[person_key]
     
     if previous_state != current_state:
-        print(f"FIXED ACCURATE: Person {person_id} state changed: {previous_state} -> {current_state}")
+        print(f"FIXED SYNC: Person {person_id} state changed: {previous_state} -> {current_state}")
         
-        # FIXED: Close previous session if it was a distraction with EXACT duration
+        # FIXED: Close previous session if it was a distraction with proper duration calculation
         if previous_state and previous_state in DISTRACTION_THRESHOLDS:
             session_duration = current_time - person_state_start_times[person_key]
             
-            # FIXED: Store EXACT session duration (no accumulation here)
+            # Add to distraction sessions with exact duration
             if previous_state not in person_distraction_sessions[person_key]:
                 person_distraction_sessions[person_key][previous_state] = []
             
@@ -317,22 +317,22 @@ def update_distraction_sessions_accurate(person_id, current_state, current_time)
                 'duration': session_duration
             })
             
-            print(f"FIXED ACCURATE: Stored EXACT {previous_state} session for person {person_id}: {session_duration:.2f}s")
+            print(f"FIXED SYNC: Closed {previous_state} session for person {person_id}: {session_duration:.2f}s")
         
         # Update state and start time
         person_current_states[person_key] = current_state
         person_state_start_times[person_key] = current_time
     
-    # FIXED: Return current session duration for real-time display
+    # FIXED: Return current session duration for synchronized display
     if current_state in DISTRACTION_THRESHOLDS:
         current_duration = current_time - person_state_start_times[person_key]
         return current_duration
     
     return 0
 
-def calculate_accurate_distraction_times():
-    """FIXED: Calculate ACCURATE distraction times with NO DOUBLE COUNTING"""
-    global person_distraction_sessions, person_current_states, person_state_start_times
+def calculate_synchronized_distraction_times():
+    """FIXED: Calculate total distraction times by summing all alert durations from history"""
+    global session_data, person_distraction_sessions, person_current_states, person_state_start_times
     
     totals = {
         'total_unfocused_time': 0,
@@ -343,45 +343,31 @@ def calculate_accurate_distraction_times():
     
     current_time = time.time()
     
-    # FIXED: Calculate ONLY completed sessions to avoid double counting
-    for person_key, sessions in person_distraction_sessions.items():
-        for distraction_type, session_list in sessions.items():
-            # FIXED: Sum only COMPLETED sessions
-            total_duration = sum(session['duration'] for session in session_list)
+    # FIXED: Calculate from actual alert history instead of sessions
+    if session_data and session_data.get('alerts'):
+        for alert in session_data['alerts']:
+            alert_type = alert.get('detection', '')
+            # Use the real_time_duration which matches the alert history display
+            duration = alert.get('real_time_duration', alert.get('duration', 0))
             
-            if distraction_type == 'NOT FOCUSED':
-                totals['total_unfocused_time'] += total_duration
-            elif distraction_type == 'YAWNING':
-                totals['total_yawning_time'] += total_duration
-            elif distraction_type == 'SLEEPING':
-                totals['total_sleeping_time'] += total_duration
-            
-            print(f"FIXED ACCURATE: {person_key} {distraction_type} completed sessions: {len(session_list)}, total: {total_duration:.2f}s")
-    
-    # FIXED: Add CURRENT ongoing distraction sessions for real-time accuracy
-    for person_key, current_state in person_current_states.items():
-        if current_state and current_state in DISTRACTION_THRESHOLDS:
-            if person_key in person_state_start_times:
-                current_duration = current_time - person_state_start_times[person_key]
-                
-                if current_state == 'NOT FOCUSED':
-                    totals['total_unfocused_time'] += current_duration
-                elif current_state == 'YAWNING':
-                    totals['total_yawning_time'] += current_duration
-                elif current_state == 'SLEEPING':
-                    totals['total_sleeping_time'] += current_duration
-                
-                print(f"FIXED ACCURATE: {person_key} ONGOING {current_state}: {current_duration:.2f}s")
+            if alert_type == 'NOT FOCUSED':
+                totals['total_unfocused_time'] += duration
+            elif alert_type == 'YAWNING':
+                totals['total_yawning_time'] += duration
+            elif alert_type == 'SLEEPING':
+                totals['total_sleeping_time'] += duration
     
     # Calculate total focused time
-    if session_start_time:
-        total_session_time = current_time - session_start_time
+    if session_data and session_data.get('start_time'):
+        if session_data.get('end_time'):
+            total_session_time = (session_data['end_time'] - session_data['start_time']).total_seconds()
+        else:
+            total_session_time = current_time - time.mktime(session_data['start_time'].timetuple())
+        
         total_distraction_time = (totals['total_unfocused_time'] + 
                                 totals['total_yawning_time'] + 
                                 totals['total_sleeping_time'])
         totals['total_focused_time'] = max(0, total_session_time - total_distraction_time)
-    
-    print(f"FIXED ACCURATE TOTALS: Focus={totals['total_focused_time']:.2f}s, Unfocus={totals['total_unfocused_time']:.2f}s, Yawn={totals['total_yawning_time']:.2f}s, Sleep={totals['total_sleeping_time']:.2f}s")
     
     return totals
 
@@ -409,7 +395,7 @@ def should_trigger_alert_improved(person_id, current_state, current_duration):
     return True
 
 def detect_persons_with_attention(image, mode="image"):
-    """FIXED: Detect persons with ACCURATE session tracking"""
+    """FIXED: Detect persons with synchronized session tracking"""
     global live_monitoring_active, session_data, face_detection, face_mesh
     global person_distraction_sessions, person_current_states, person_state_start_times
     
@@ -494,16 +480,16 @@ def detect_persons_with_attention(image, mode="image"):
             status_text = attention_status.get("state", "FOCUSED")
             person_id = i + 1
             
-            # FIXED: Update ACCURATE distraction sessions
+            # FIXED: Update synchronized distraction sessions
             session_duration = 0
             if mode == "video" and is_monitoring_active:
-                session_duration = update_distraction_sessions_accurate(person_id, status_text, current_time)
+                session_duration = update_distraction_sessions_synchronized(person_id, status_text, current_time)
                 
                 # FIXED: Check if alert should be triggered with improved cooldown
                 if should_trigger_alert_improved(person_id, status_text, session_duration):
-                    trigger_alert_accurate(person_id, status_text, session_duration)
+                    trigger_alert_synchronized(person_id, status_text, session_duration)
             
-            # Enhanced visualization with ACCURATE timers
+            # Enhanced visualization with synchronized timers
             if mode == "video" and is_monitoring_active:
                 status_colors = {
                     "FOCUSED": (0, 255, 0),
@@ -515,7 +501,7 @@ def detect_persons_with_attention(image, mode="image"):
                 main_color = status_colors.get(status_text, (0, 255, 0))
                 cv.rectangle(image, (x, y), (x + w, y + h), main_color, 3)
                 
-                # FIXED: ACCURATE timer display matching PDF data
+                # FIXED: Synchronized timer display matching PDF data
                 if status_text in DISTRACTION_THRESHOLDS:
                     threshold = DISTRACTION_THRESHOLDS[status_text]
                     timer_text = f"Person {person_id}: {status_text} ({session_duration:.1f}s/{threshold}s)"
@@ -610,8 +596,8 @@ def detect_persons_with_attention(image, mode="image"):
     
     return image, detections
 
-def trigger_alert_accurate(person_id, alert_type, duration):
-    """FIXED: Trigger alert with ACCURATE duration matching display"""
+def trigger_alert_synchronized(person_id, alert_type, duration):
+    """FIXED: Store alert with exact duration matching display"""
     global session_data
     
     alert_time = datetime.now().strftime("%H:%M:%S")
@@ -626,7 +612,7 @@ def trigger_alert_accurate(person_id, alert_type, duration):
     else:
         return
     
-    # FIXED: Store alert with ACCURATE duration matching real-time display
+    # FIXED: Store alert with duration that matches alert history display
     with monitoring_lock:
         if live_monitoring_active and session_data and session_data.get('start_time'):
             alert_entry = {
@@ -634,15 +620,15 @@ def trigger_alert_accurate(person_id, alert_type, duration):
                 'person': f"Person {person_id}",
                 'detection': alert_type,
                 'message': alert_message,
-                'duration': int(duration),  # FIXED: Use EXACT accurate duration
+                'duration': int(duration),  # Duration in seconds as shown in alert history
                 'alert_time': alert_time,
-                'real_time_duration': duration  # FIXED: Store EXACT continuous duration
+                'real_time_duration': duration  # Exact duration for calculation
             }
             session_data['alerts'].append(alert_entry)
-            print(f"FIXED ACCURATE: Alert triggered - {alert_message} (EXACT Duration: {duration:.1f}s)")
+            print(f"FIXED: Alert stored - {alert_message} (Duration: {duration:.1f}s)")
 
-def update_session_statistics_accurate(detections):
-    """FIXED: Update session statistics with ACCURATE tracking"""
+def update_session_statistics_synchronized(detections):
+    """FIXED: Update session statistics with synchronized tracking"""
     global session_data
     
     if not detections:
@@ -657,8 +643,8 @@ def update_session_statistics_accurate(detections):
                 len(detections)
             )
             
-            # FIXED: Update focus statistics with ACCURATE calculation
-            totals = calculate_accurate_distraction_times()
+            # FIXED: Update focus statistics with synchronized calculation
+            totals = calculate_synchronized_distraction_times()
             session_data['focus_statistics']['total_focused_time'] = totals['total_focused_time']
             session_data['focus_statistics']['total_unfocused_time'] = totals['total_unfocused_time']
             session_data['focus_statistics']['total_yawning_time'] = totals['total_yawning_time']
@@ -713,8 +699,8 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
         print(f"Error creating session recording: {str(e)}")
         return None
 
-def generate_pdf_report_accurate(session_data, output_path):
-    """FIXED: Generate PDF report with ACCURATE duration data matching real-time display"""
+def generate_pdf_report_synchronized(session_data, output_path):
+    """FIXED: Generate PDF report with accurate distraction time calculation"""
     try:
         doc = SimpleDocTemplate(output_path, pagesize=A4)
         styles = getSampleStyleSheet()
@@ -740,7 +726,7 @@ def generate_pdf_report_accurate(session_data, output_path):
         )
         
         # Title
-        story.append(Paragraph("Smart Focus Alert - ACCURATE Duration Report", title_style))
+        story.append(Paragraph("Smart Focus Alert - FIXED Session Report", title_style))
         story.append(Spacer(1, 20))
         
         # Calculate session duration
@@ -752,15 +738,29 @@ def generate_pdf_report_accurate(session_data, output_path):
             total_session_seconds = 0
             duration_str = "N/A"
         
-        # FIXED: Get ACCURATE time statistics matching real-time display
-        totals = calculate_accurate_distraction_times()
-        focused_time = totals['total_focused_time']
-        unfocused_time = totals['total_unfocused_time']
-        yawning_time = totals['total_yawning_time']
-        sleeping_time = totals['total_sleeping_time']
+        # FIXED: Calculate distraction times from alert history
+        unfocused_time = 0
+        yawning_time = 0
+        sleeping_time = 0
         
-        # Calculate total distraction time
+        # Sum up all alert durations by type
+        alert_durations_by_type = {}
+        for alert in session_data.get('alerts', []):
+            alert_type = alert.get('detection', '')
+            duration = alert.get('real_time_duration', alert.get('duration', 0))
+            
+            if alert_type not in alert_durations_by_type:
+                alert_durations_by_type[alert_type] = []
+            alert_durations_by_type[alert_type].append(duration)
+        
+        # Calculate total time for each distraction type
+        unfocused_time = sum(alert_durations_by_type.get('NOT FOCUSED', []))
+        yawning_time = sum(alert_durations_by_type.get('YAWNING', []))
+        sleeping_time = sum(alert_durations_by_type.get('SLEEPING', []))
+        
+        # Calculate total distraction time and focused time
         total_distraction_time = unfocused_time + yawning_time + sleeping_time
+        focused_time = max(0, total_session_seconds - total_distraction_time)
         
         # Calculate focus accuracy percentage
         if total_session_seconds > 0:
@@ -820,7 +820,7 @@ def generate_pdf_report_accurate(session_data, output_path):
         story.append(Spacer(1, 20))
         
         # Focus Accuracy Summary
-        story.append(Paragraph("Focus Accuracy Summary - ACCURATE DATA", heading_style))
+        story.append(Paragraph("Focus Accuracy Summary - FIXED DATA", heading_style))
         
         # Create highlighted focus accuracy display
         accuracy_text = f"<para align=center><font size=18 color='{rating_color.hexval()}'><b>{focus_accuracy:.1f}%</b></font></para>"
@@ -831,7 +831,7 @@ def generate_pdf_report_accurate(session_data, output_path):
         story.append(Paragraph(rating_text, styles['Normal']))
         story.append(Spacer(1, 20))
         
-        # FIXED: ACCURATE detailed time breakdown matching real-time display
+        # FIXED: Detailed time breakdown with correct calculations
         focus_breakdown = [
             ['Metric', 'Time', 'Percentage'],
             ['Total Focused Time', format_time(focused_time), f"{(focused_time/total_session_seconds*100):.1f}%" if total_session_seconds > 0 else "0%"],
@@ -862,9 +862,9 @@ def generate_pdf_report_accurate(session_data, output_path):
         story.append(Spacer(1, 20))
         
         # Focus Statistics
-        story.append(Paragraph("Detailed Focus Statistics - ACCURATE", heading_style))
+        story.append(Paragraph("Detailed Focus Statistics - FIXED", heading_style))
         
-        # FIXED: Calculate meaningful statistics from ACCURATE data
+        # Calculate meaningful statistics
         if total_session_seconds > 0:
             focused_minutes = focused_time / 60
             total_minutes = total_session_seconds / 60
@@ -872,8 +872,8 @@ def generate_pdf_report_accurate(session_data, output_path):
         else:
             average_focus_metric = "N/A"
         
-        # FIXED: Get most common distraction from ACCURATE sessions
-        most_common_distraction = get_most_common_distraction_accurate()
+        # Get most common distraction
+        most_common_distraction = get_most_common_distraction_from_alerts(session_data.get('alerts', []))
         
         focus_stats = [
             ['Total Session Duration', format_time(total_session_seconds)],
@@ -900,11 +900,11 @@ def generate_pdf_report_accurate(session_data, output_path):
         story.append(focus_table)
         story.append(Spacer(1, 30))
         
-        # FIXED: Alert History with ACCURATE durations matching real-time display
+        # Alert History with correct durations
         if session_data['alerts']:
-            story.append(Paragraph("Alert History - ACCURATE DURATIONS", heading_style))
+            story.append(Paragraph("Alert History - FIXED DATA", heading_style))
             
-            alert_headers = ['Time', 'Person', 'Detection', 'Exact Duration', 'Message']
+            alert_headers = ['Time', 'Person', 'Detection', 'Duration', 'Message']
             alert_data = [alert_headers]
             
             for alert in session_data['alerts'][-15:]:  # Show last 15 alerts
@@ -913,9 +913,9 @@ def generate_pdf_report_accurate(session_data, output_path):
                 except:
                     alert_time = alert.get('alert_time', 'N/A')
                 
-                # FIXED: Use ACCURATE real-time duration
+                # Use the duration that matches alert history display
                 duration = alert.get('real_time_duration', alert.get('duration', 0))
-                duration_text = f"{duration:.1f}s" if duration > 0 else "N/A"
+                duration_text = f"{duration:.0f}s" if duration > 0 else "N/A"
                 
                 alert_data.append([
                     alert_time,
@@ -940,43 +940,9 @@ def generate_pdf_report_accurate(session_data, output_path):
             
             story.append(alert_table)
         
-        # FIXED: Add distraction session breakdown for verification
-        story.append(Spacer(1, 30))
-        story.append(Paragraph("Distraction Session Breakdown - VERIFICATION", heading_style))
-        
-        session_breakdown_data = [['Person', 'Distraction Type', 'Sessions', 'Total Duration']]
-        
-        for person_key, sessions in person_distraction_sessions.items():
-            for distraction_type, session_list in sessions.items():
-                total_duration = sum(session['duration'] for session in session_list)
-                session_breakdown_data.append([
-                    person_key.replace('person_', 'Person '),
-                    distraction_type,
-                    str(len(session_list)),
-                    f"{total_duration:.1f}s"
-                ])
-        
-        if len(session_breakdown_data) > 1:
-            breakdown_verification_table = Table(session_breakdown_data, colWidths=[1.5*inch, 2*inch, 1*inch, 1.5*inch])
-            breakdown_verification_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB')),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')])
-            ]))
-            
-            story.append(breakdown_verification_table)
-        else:
-            story.append(Paragraph("No distraction sessions recorded.", styles['Normal']))
-        
         # Footer
         story.append(Spacer(1, 30))
-        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - ACCURATE Duration Tracking"
+        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - FIXED Duration Calculation"
         footer_style = ParagraphStyle(
             'Footer',
             parent=styles['Normal'],
@@ -987,15 +953,44 @@ def generate_pdf_report_accurate(session_data, output_path):
         story.append(Paragraph(footer_text, footer_style))
         
         doc.build(story)
-        print(f"FIXED ACCURATE: PDF report generated successfully with ACCURATE data: {output_path}")
+        print(f"FIXED: PDF report generated with correct distraction time calculation: {output_path}")
         return output_path
     except Exception as e:
-        print(f"Error generating ACCURATE PDF report: {str(e)}")
+        print(f"Error generating FIXED PDF report: {str(e)}")
         traceback.print_exc()
         return None
+    
+def get_most_common_distraction_from_alerts(alerts):
+    """Get most common distraction from alert history"""
+    if not alerts:
+        return "None"
+    
+    distraction_counts = {}
+    distraction_totals = {}
+    
+    for alert in alerts:
+        alert_type = alert.get('detection', '')
+        duration = alert.get('real_time_duration', alert.get('duration', 0))
+        
+        if alert_type not in distraction_counts:
+            distraction_counts[alert_type] = 0
+            distraction_totals[alert_type] = 0
+        
+        distraction_counts[alert_type] += 1
+        distraction_totals[alert_type] += duration
+    
+    if not distraction_counts:
+        return "None"
+    
+    # Find most common by total duration
+    most_common = max(distraction_totals, key=distraction_totals.get)
+    count = distraction_counts[most_common]
+    total_duration = int(distraction_totals[most_common])
+    
+    return f"{most_common} ({count} alerts, {total_duration}s total)"
 
-def get_most_common_distraction_accurate():
-    """FIXED: Get most common distraction from ACCURATE sessions"""
+def get_most_common_distraction_synchronized():
+    """FIXED: Get most common distraction from synchronized sessions"""
     global person_distraction_sessions
     
     distraction_totals = {}
@@ -1150,7 +1145,7 @@ def generate_upload_pdf_report(detections, file_info, output_path):
         
         # Footer
         story.append(Spacer(1, 30))
-        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - ACCURATE Duration Tracking"
+        footer_text = f"Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>Smart Focus Alert System - SYNCHRONIZED Duration Tracking"
         footer_style = ParagraphStyle(
             'Footer',
             parent=styles['Normal'],
@@ -1289,7 +1284,7 @@ def webcam():
 
 @application.route('/start_monitoring', methods=['POST'])
 def start_monitoring():
-    """FIXED: Start monitoring with ACCURATE session tracking"""
+    """FIXED: Start monitoring with synchronized session tracking"""
     global live_monitoring_active, session_data, recording_active
     global person_distraction_sessions, person_current_states, person_state_start_times
     global last_alert_times, session_start_time
@@ -1302,7 +1297,7 @@ def start_monitoring():
             if live_monitoring_active:
                 return jsonify({"status": "error", "message": "Monitoring already active"})
             
-            # FIXED: Reset all tracking variables with ACCURATE initialization
+            # FIXED: Reset all tracking variables with synchronized initialization
             session_data = {
                 'start_time': datetime.now(),
                 'end_time': None,
@@ -1325,7 +1320,7 @@ def start_monitoring():
                 'total_frames_processed': 0
             }
             
-            # FIXED: Reset ACCURATE session tracking
+            # FIXED: Reset synchronized session tracking
             person_distraction_sessions = {}
             person_current_states = {}
             person_state_start_times = {}
@@ -1335,11 +1330,11 @@ def start_monitoring():
             live_monitoring_active = True
             recording_active = True
             
-            print(f"FIXED ACCURATE: ACCURATE session tracking started at {session_data['start_time']}")
+            print(f"FIXED SYNC: Synchronized session tracking started at {session_data['start_time']}")
             
             return jsonify({
                 "status": "success", 
-                "message": "FIXED ACCURATE session tracking started", 
+                "message": "FIXED synchronized session tracking started", 
                 "session_id": client_session_id
             })
         
@@ -1350,7 +1345,7 @@ def start_monitoring():
 
 @application.route('/stop_monitoring', methods=['POST'])
 def stop_monitoring():
-    """FIXED: Stop monitoring with finalized ACCURATE session tracking"""
+    """FIXED: Stop monitoring with finalized synchronized session tracking"""
     global live_monitoring_active, session_data, recording_active
     global person_distraction_sessions, person_current_states, person_state_start_times
     
@@ -1363,7 +1358,7 @@ def stop_monitoring():
             if not live_monitoring_active and (not session_data or not session_data.get('start_time')):
                 return jsonify({"status": "error", "message": "Monitoring not active"})
             
-            # FIXED: Finalize all ongoing distraction sessions with ACCURATE timing
+            # FIXED: Finalize all ongoing distraction sessions with synchronized timing
             current_time = time.time()
             for person_key, current_state in person_current_states.items():
                 if current_state and current_state in DISTRACTION_THRESHOLDS:
@@ -1382,43 +1377,43 @@ def stop_monitoring():
                             'duration': session_duration
                         })
                         
-                        print(f"FIXED ACCURATE: Finalized {current_state} session for {person_key}: {session_duration:.2f}s")
+                        print(f"FIXED SYNC: Finalized {current_state} session for {person_key}: {session_duration:.2f}s")
             
             # Merge client alerts if provided
             if client_alerts:
                 session_data['client_alerts'] = client_alerts
-                print(f"FIXED ACCURATE: Merged {len(client_alerts)} client alerts")
+                print(f"FIXED SYNC: Merged {len(client_alerts)} client alerts")
             
             # Stop monitoring
             live_monitoring_active = False
             recording_active = False
             session_data['end_time'] = datetime.now()
             
-            print(f"FIXED ACCURATE: ACCURATE session tracking stopped at {session_data['end_time']}")
+            print(f"FIXED SYNC: Synchronized session tracking stopped at {session_data['end_time']}")
             
             response_data = {
                 "status": "success", 
-                "message": "FIXED ACCURATE session tracking stopped",
+                "message": "FIXED synchronized session tracking stopped",
                 "alerts_processed": len(session_data['alerts']),
                 "frames_captured": len(session_data.get('recording_frames', [])),
                 "distraction_sessions": len(person_distraction_sessions)
             }
             
-            # Generate PDF report with ACCURATE data
+            # Generate PDF report with synchronized data
             try:
                 pdf_filename = f"session_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.pdf"
                 pdf_path = os.path.join(application.config['REPORTS_FOLDER'], pdf_filename)
                 
-                pdf_result = generate_pdf_report_accurate(session_data, pdf_path)
+                pdf_result = generate_pdf_report_synchronized(session_data, pdf_path)
                 
                 if pdf_result and os.path.exists(pdf_path):
                     response_data["pdf_report"] = f"/static/reports/{pdf_filename}"
-                    print(f"FIXED ACCURATE PDF SUCCESS: {pdf_filename}")
+                    print(f"FIXED SYNC PDF SUCCESS: {pdf_filename}")
                 else:
-                    print("FIXED ACCURATE PDF FAILED: File not created")
+                    print("FIXED SYNC PDF FAILED: File not created")
                     
             except Exception as pdf_error:
-                print(f"FIXED ACCURATE PDF ERROR: {str(pdf_error)}")
+                print(f"FIXED SYNC PDF ERROR: {str(pdf_error)}")
                 traceback.print_exc()
             
             # Generate video recording
@@ -1437,14 +1432,14 @@ def stop_monitoring():
                     if video_result and os.path.exists(recording_path):
                         response_data["video_file"] = f"/static/recordings/{os.path.basename(recording_path)}"
                         session_data['recording_path'] = recording_path
-                        print(f"FIXED ACCURATE VIDEO SUCCESS: {os.path.basename(recording_path)}")
+                        print(f"FIXED SYNC VIDEO SUCCESS: {os.path.basename(recording_path)}")
                     else:
-                        print("FIXED ACCURATE VIDEO FAILED: Unable to create from frames")
+                        print("FIXED SYNC VIDEO FAILED: Unable to create from frames")
                 else:
-                    print("FIXED ACCURATE VIDEO SKIPPED: No frames available")
+                    print("FIXED SYNC VIDEO SKIPPED: No frames available")
                     
             except Exception as video_error:
-                print(f"FIXED ACCURATE VIDEO ERROR: {str(video_error)}")
+                print(f"FIXED SYNC VIDEO ERROR: {str(video_error)}")
                 traceback.print_exc()
             
             return jsonify(response_data)
@@ -1456,7 +1451,7 @@ def stop_monitoring():
 
 @application.route('/process_frame', methods=['POST'])
 def process_frame():
-    """FIXED: Enhanced frame processing with ACCURATE session tracking"""
+    """FIXED: Enhanced frame processing with synchronized session tracking"""
     global session_data
     
     try:
@@ -1498,9 +1493,9 @@ def process_frame():
                         session_data['recording_frames'] = session_data['recording_frames'][frames_to_remove:]
                         session_data['frame_timestamps'] = session_data['frame_timestamps'][frames_to_remove:]
         
-        # Update session statistics with ACCURATE tracking
+        # Update session statistics with synchronized tracking
         if live_monitoring_active and detections:
-            update_session_statistics_accurate(detections)
+            update_session_statistics_synchronized(detections)
         
         # Encode processed frame
         _, buffer = cv.imencode('.jpg', processed_frame, [cv.IMWRITE_JPEG_QUALITY, 85])
@@ -1522,7 +1517,7 @@ def process_frame():
 
 @application.route('/sync_alerts', methods=['POST'])
 def sync_alerts():
-    """Sync client-side alerts with server for ACCURATE tracking"""
+    """Sync client-side alerts with server for synchronized tracking"""
     try:
         request_data = request.get_json() or {}
         client_alerts = request_data.get('alerts', [])
@@ -1531,7 +1526,7 @@ def sync_alerts():
         with monitoring_lock:
             if session_data and session_data.get('session_id') == session_id:
                 session_data['client_alerts'] = client_alerts
-                print(f"FIXED ACCURATE: Synced {len(client_alerts)} client alerts for session {session_id}")
+                print(f"FIXED SYNC: Synced {len(client_alerts)} client alerts for session {session_id}")
                 return jsonify({"status": "success", "synced_count": len(client_alerts)})
             else:
                 return jsonify({"status": "error", "message": "Session mismatch"})
@@ -1542,7 +1537,7 @@ def sync_alerts():
 
 @application.route('/get_monitoring_data')
 def get_monitoring_data():
-    """Enhanced monitoring data endpoint with ACCURATE information"""
+    """Enhanced monitoring data endpoint with synchronized information"""
     global session_data
     
     try:
@@ -1560,7 +1555,7 @@ def get_monitoring_data():
                 except:
                     alert_time = alert.get('alert_time', 'N/A')
                 
-                # FIXED: Show ACCURATE duration from real-time tracking
+                # FIXED: Show synchronized duration from real-time tracking
                 duration = alert.get('real_time_duration', alert.get('duration', 0))
                 duration_text = f" ({duration:.1f}s)" if duration > 0 else ""
                 
@@ -1613,7 +1608,7 @@ def get_monitoring_data():
 
 @application.route('/monitoring_status')
 def monitoring_status():
-    """Get current monitoring status with ACCURATE information"""
+    """Get current monitoring status with synchronized information"""
     try:
         with monitoring_lock:
             return jsonify({
@@ -1623,7 +1618,7 @@ def monitoring_status():
                 "frames_stored": len(session_data.get('recording_frames', [])) if session_data else 0,
                 "frames_processed": session_data.get('total_frames_processed', 0) if session_data else 0,
                 "distraction_sessions": len(person_distraction_sessions),
-                "accurate_tracking": True
+                "synchronized_tracking": True
             })
     except Exception as e:
         print(f"Error getting monitoring status: {str(e)}")
@@ -1640,7 +1635,7 @@ def check_camera():
 
 @application.route('/health')
 def health_check():
-    """Enhanced health check endpoint with ACCURATE information"""
+    """Enhanced health check endpoint with synchronized information"""
     try:
         with monitoring_lock:
             return jsonify({
@@ -1659,9 +1654,9 @@ def health_check():
                 "frame_storage_ratio": len(session_data.get('recording_frames', [])) / max(1, session_data.get('total_frames_processed', 1)) * 100 if session_data else 0,
                 "mediapipe_status": "initialized" if face_detection and face_mesh else "error",
                 "distraction_sessions": len(person_distraction_sessions),
-                "accurate_tracking": True,
+                "synchronized_tracking": True,
                 "alert_cooldown": ALERT_COOLDOWN,
-                "version": "accurate_duration_tracking_v1.0"
+                "version": "synchronized_duration_tracking_v1.0"
             })
     except Exception as e:
         print(f"Health check error: {str(e)}")
@@ -1777,14 +1772,14 @@ if __name__ == "__main__":
             print("WARNING: MediaPipe initialization failed, continuing with limited functionality")
         
         port = int(os.environ.get('PORT', 5000))
-        print(f"FIXED ACCURATE: Starting Smart Focus Alert with ACCURATE Duration Tracking on port {port}")
-        print("FIXED ACCURATE: Enhanced ACCURATE distraction session tracking:")
-        print("  - ACCURATE session-based duration calculation with NO DOUBLE COUNTING")
-        print("  - Real-time display EXACTLY matches PDF report data")
-        print("  - ACCURATE session tracking per person with exact durations")
+        print(f"FIXED SYNC: Starting Smart Focus Alert with SYNCHRONIZED Duration Tracking on port {port}")
+        print("FIXED SYNC: Enhanced synchronized distraction session tracking:")
+        print("  - Synchronized session-based duration calculation")
+        print("  - Real-time display matches PDF report data")
+        print("  - Synchronized session tracking per person")
         print("  - Alert triggers every 2 seconds for continued distraction")
-        print("  - ACCURATE total distraction time calculation")
-        print("  - Focus accuracy calculation EXACTLY matches real-time display")
+        print("  - Synchronized total distraction time calculation")
+        print("  - Focus accuracy calculation matches real-time display")
         print("Frame storage configuration:")
         print(f"  - Storage interval: every {FRAME_STORAGE_INTERVAL} frames")
         print(f"  - Max stored frames: {MAX_STORED_FRAMES}")
