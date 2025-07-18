@@ -1,4 +1,4 @@
-# app.py - FIXED Railway deployment dengan improved face landmarks dan durasi calculation
+# app.py - Railway deployment dengan FIXED video recording consistency
 from flask import Flask, render_template, request, Response, jsonify, send_file, send_from_directory
 from werkzeug.utils import secure_filename
 import mediapipe as mp
@@ -48,11 +48,9 @@ for folder in [application.config['UPLOAD_FOLDER'], application.config['DETECTED
     except Exception as e:
         print(f"Error creating directory {folder}: {str(e)}")
 
-# FIXED: Enhanced global variables untuk consistent session tracking
+# FIXED: Enhanced global variables untuk consistent video recording
 monitoring_lock = threading.RLock()
 live_monitoring_active = False
-
-# FIXED: Improved session data structure dengan better tracking
 session_data = {
     'start_time': None,
     'end_time': None,
@@ -69,22 +67,19 @@ session_data = {
     'recording_frames': [],
     'session_id': None,
     'client_alerts': [],
-    'frame_counter': 0,
-    'frame_timestamps': [],
-    'total_frames_processed': 0,
-    'distraction_sessions': {},  # FIXED: Track individual distraction sessions
-    'active_states': {}  # FIXED: Track current active states per person
+    'frame_counter': 0,  # FIXED: Added consistent frame counter
+    'frame_timestamps': [],  # FIXED: Track frame timing
+    'total_frames_processed': 0  # FIXED: Track total processing
 }
 
 # Video recording variables
 video_writer = None
 recording_active = False
 
-# FIXED: Enhanced person tracking untuk Railway dengan better state management
+# Enhanced person tracking untuk Railway
 person_state_timers = {}
 person_current_state = {}
 last_alert_time = {}
-person_distraction_sessions = {}  # FIXED: Track continuous distraction sessions
 
 # Alert thresholds (dalam seconds) - gunakan yang sama dengan lokal
 DISTRACTION_THRESHOLDS = {
@@ -139,7 +134,6 @@ def euclidean_distance(image, top, bottom):
     distance = dis.euclidean(point1, point2)
     return distance
 
-
 def get_aspect_ratio(image, landmarks, top_bottom, left_right):
     """Calculate aspect ratio based on landmarks"""
     top = landmarks.landmark[top_bottom[0]]
@@ -149,6 +143,10 @@ def get_aspect_ratio(image, landmarks, top_bottom, left_right):
     left = landmarks.landmark[left_right[0]]
     right = landmarks.landmark[left_right[1]]
     left_right_dis = euclidean_distance(image, left, right)
+    
+    # Handle division by zero untuk Railway
+    if top_bottom_dis == 0:
+        return 5.0  # Default to closed eyes ratio
     
     aspect_ratio = left_right_dis / top_bottom_dis
     return aspect_ratio
@@ -201,77 +199,109 @@ def detect_drowsiness(frame, landmarks, speech_engine=None):
     UPPER_LOWER_LIPS = [13, 14]
     LEFT_RIGHT_LIPS = [78, 308]
 
-    # Create mesh points for iris detection
-    img_h, img_w = frame.shape[:2]
-    mesh_points = []    
-    for p in landmarks.landmark:
-        x = int(p.x * img_w)
-        y = int(p.y * img_h)
-        mesh_points.append((x, y))
-    mesh_points = np.array(mesh_points)            
-    
-    left_eye_points = mesh_points[LEFT_EYE]
-    right_eye_points = mesh_points[RIGHT_EYE]
-    left_iris_points = mesh_points[LEFT_IRIS]
-    right_iris_points = mesh_points[RIGHT_IRIS]
+    try:
+        # Draw landmarks
+        draw_landmarks(frame, landmarks, LEFT_EYE, COLOR_GREEN)
+        draw_landmarks(frame, landmarks, RIGHT_EYE, COLOR_GREEN)
+        draw_landmarks(frame, landmarks, LEFT_EYE_TOP_BOTTOM, COLOR_RED)
+        draw_landmarks(frame, landmarks, LEFT_EYE_LEFT_RIGHT, COLOR_RED)
+        draw_landmarks(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, COLOR_RED)
+        draw_landmarks(frame, landmarks, RIGHT_EYE_LEFT_RIGHT, COLOR_RED)
+        draw_landmarks(frame, landmarks, UPPER_LOWER_LIPS, COLOR_BLUE)
+        draw_landmarks(frame, landmarks, LEFT_RIGHT_LIPS, COLOR_BLUE)
 
-    # Detect closed eyes
-    ratio_left_eye = get_aspect_ratio(frame, landmarks, LEFT_EYE_TOP_BOTTOM, LEFT_EYE_LEFT_RIGHT)
-    ratio_right_eye = get_aspect_ratio(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, RIGHT_EYE_LEFT_RIGHT)
-    eye_ratio = (ratio_left_eye + ratio_right_eye) / 2
-    
-    # Detect yawning
-    ratio_lips = get_aspect_ratio(frame, landmarks, UPPER_LOWER_LIPS, LEFT_RIGHT_LIPS)
-    
-    # Check if iris is focused (looking at center/screen)
-    iris_focused = check_iris_in_middle(left_eye_points, left_iris_points, right_eye_points, right_iris_points)
-    
-    # Determine state based on conditions
-    eyes_closed = eye_ratio > 5.0
-    yawning = ratio_lips < 1.8
-    not_focused = not iris_focused
-    
-    # State priority: SLEEPING > YAWNING > NOT FOCUSED > FOCUSED
-    if eyes_closed:
-        state = "SLEEPING"
-    elif yawning:
-        state = "YAWNING"
-    elif not_focused:
-        state = "NOT FOCUSED"
-    else:
-        state = "FOCUSED"
-    
-    status = {
-        "eyes_closed": eyes_closed,
-        "yawning": yawning,
-        "not_focused": not_focused,
-        "focused": iris_focused,
-        "state": state
-    }
-    
-    return status, state
+        # Create mesh points for iris detection
+        img_h, img_w = frame.shape[:2]
+        mesh_points = []    
+        for p in landmarks.landmark:
+            x = int(p.x * img_w)
+            y = int(p.y * img_h)
+            mesh_points.append((x, y))
+        mesh_points = np.array(mesh_points)            
+        
+        left_eye_points = mesh_points[LEFT_EYE]
+        right_eye_points = mesh_points[RIGHT_EYE]
+        left_iris_points = mesh_points[LEFT_IRIS]
+        right_iris_points = mesh_points[RIGHT_IRIS]
+
+        # Draw iris circles dengan error handling
+        try:
+            (l_cx, l_cy), l_radius = cv.minEnclosingCircle(left_iris_points)
+            (r_cx, r_cy), r_radius = cv.minEnclosingCircle(right_iris_points)
+            center_left = np.array([l_cx, l_cy], dtype=np.int32)
+            center_right = np.array([r_cx, r_cy], dtype=np.int32)
+            cv.circle(frame, center_left, int(l_radius), COLOR_MAGENTA, 1, cv.LINE_AA)
+            cv.circle(frame, center_right, int(r_radius), COLOR_MAGENTA, 1, cv.LINE_AA)
+        except:
+            pass
+
+        # Detect closed eyes
+        ratio_left_eye = get_aspect_ratio(frame, landmarks, LEFT_EYE_TOP_BOTTOM, LEFT_EYE_LEFT_RIGHT)
+        ratio_right_eye = get_aspect_ratio(frame, landmarks, RIGHT_EYE_TOP_BOTTOM, RIGHT_EYE_LEFT_RIGHT)
+        eye_ratio = (ratio_left_eye + ratio_right_eye) / 2
+        
+        # Detect yawning
+        ratio_lips = get_aspect_ratio(frame, landmarks, UPPER_LOWER_LIPS, LEFT_RIGHT_LIPS)
+        
+        # Check if iris is focused (looking at center/screen)
+        iris_focused = check_iris_in_middle(left_eye_points, left_iris_points, right_eye_points, right_iris_points)
+        
+        # Determine state based on conditions
+        eyes_closed = eye_ratio > 5.0
+        yawning = ratio_lips < 1.8
+        not_focused = not iris_focused
+        
+        # State priority: SLEEPING > YAWNING > NOT FOCUSED > FOCUSED
+        if eyes_closed:
+            state = "SLEEPING"
+        elif yawning:
+            state = "YAWNING"
+        elif not_focused:
+            state = "NOT FOCUSED"
+        else:
+            state = "FOCUSED"
+        
+        status = {
+            "eyes_closed": eyes_closed,
+            "yawning": yawning,
+            "not_focused": not_focused,
+            "focused": iris_focused,
+            "state": state
+        }
+        
+        return status, state
+    except Exception as e:
+        print(f"Drowsiness detection error: {str(e)}")
+        return {"state": "FOCUSED"}, "FOCUSED"
 
 def detect_persons_with_attention(image, mode="image"):
-    """Detect persons in image or video frame with attention status"""
-    detector = mp.solutions.face_detection.FaceDetection(
-        model_selection=1,
-        min_detection_confidence=0.5
-    )
-
-    face_mesh = mp.solutions.face_mesh.FaceMesh(
-        static_image_mode=(mode == "image"),
-        max_num_faces=10,
-        refine_landmarks=True,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
-    )
+    """Detect persons in image atau video frame dengan attention status - Railway optimized"""
+    global live_monitoring_active, session_data, person_state_timers, person_current_state, last_alert_time
+    global face_detection, face_mesh
     
+    # Check if MediaPipe is initialized
+    if face_detection is None or face_mesh is None:
+        if not init_mediapipe():
+            print("MediaPipe not available, returning empty detections")
+            return image, []
+
     rgb_image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-    detection_results = detector.process(rgb_image)
-    mesh_results = face_mesh.process(rgb_image)
+    
+    try:
+        detection_results = face_detection.process(rgb_image)
+        mesh_results = face_mesh.process(rgb_image)
+    except Exception as e:
+        print(f"MediaPipe processing error: {str(e)}")
+        return image, []
     
     detections = []
     ih, iw, _ = image.shape
+    current_time = time.time()
+    
+    # Check monitoring status dengan thread safety
+    with monitoring_lock:
+        is_monitoring_active = live_monitoring_active
+        current_session_data = session_data.copy() if session_data else None
     
     if detection_results.detections:
         for i, detection in enumerate(detection_results.detections):
@@ -279,15 +309,15 @@ def detect_persons_with_attention(image, mode="image"):
             x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), \
                          int(bboxC.width * iw), int(bboxC.height * ih)
             
+            # Ensure bounding box is within image bounds
             x = max(0, x)
             y = max(0, y)
             w = min(w, iw - x)
             h = min(h, ih - y)
             
-            cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
             confidence_score = detection.score[0]
             
+            # Default attention status
             attention_status = {
                 "eyes_closed": False,
                 "yawning": False,
@@ -295,9 +325,11 @@ def detect_persons_with_attention(image, mode="image"):
                 "state": "FOCUSED"
             }
             
+            # Match detection dengan face mesh
             matched_face_idx = -1
             if mesh_results.multi_face_landmarks:
                 for face_idx, face_landmarks in enumerate(mesh_results.multi_face_landmarks):
+                    # Calculate face mesh bounding box
                     min_x, min_y = float('inf'), float('inf')
                     max_x, max_y = 0, 0
                     
@@ -308,6 +340,7 @@ def detect_persons_with_attention(image, mode="image"):
                         max_x = max(max_x, landmark_x)
                         max_y = max(max_y, landmark_y)
                     
+                    # Check if detection dan mesh overlap
                     mesh_center_x = (min_x + max_x) // 2
                     mesh_center_y = (min_y + max_y) // 2
                     det_center_x = x + w // 2
@@ -318,6 +351,7 @@ def detect_persons_with_attention(image, mode="image"):
                         matched_face_idx = face_idx
                         break
             
+            # Analyze attention jika face mesh matched
             if matched_face_idx != -1:
                 attention_status, state = detect_drowsiness(
                     image, 
@@ -326,51 +360,151 @@ def detect_persons_with_attention(image, mode="image"):
                 )
             
             status_text = attention_status.get("state", "FOCUSED")
+            person_key = f"person_{i+1}"
             
-            # Draw status info
-            info_y_start = y + h + 10
-            box_padding = 10
-            line_height = 20
-            box_height = 4 * line_height
+            duration = 0
+            if mode == "video" and is_monitoring_active:
+                with monitoring_lock:
+                    # Initialize person tracking
+                    if person_key not in person_state_timers:
+                        person_state_timers[person_key] = {}
+                        person_current_state[person_key] = None
+                        last_alert_time[person_key] = 0
+                    
+                    # Update state timing
+                    if person_current_state[person_key] != status_text:
+                        # State changed - reset timers
+                        person_state_timers[person_key] = {}
+                        person_current_state[person_key] = status_text
+                        person_state_timers[person_key][status_text] = current_time
+                    else:
+                        # Same state continues
+                        if status_text not in person_state_timers[person_key]:
+                            person_state_timers[person_key][status_text] = current_time
+                    
+                    # Calculate duration
+                    if status_text in person_state_timers[person_key]:
+                        duration = current_time - person_state_timers[person_key][status_text]
             
-            overlay = image.copy()
-            cv.rectangle(overlay, 
-                        (x - box_padding, info_y_start - box_padding), 
-                        (x + w + box_padding, info_y_start + box_height), 
-                        (0, 0, 0), -1)
-            cv.addWeighted(overlay, 0.6, image, 0.4, 0, image)
+            # Enhanced visualization untuk monitoring
+            if mode == "video" and is_monitoring_active:
+                status_colors = {
+                    "FOCUSED": (0, 255, 0),
+                    "NOT FOCUSED": (0, 165, 255),
+                    "YAWNING": (0, 255, 255),
+                    "SLEEPING": (0, 0, 255)
+                }
+                
+                main_color = status_colors.get(status_text, (0, 255, 0))
+                cv.rectangle(image, (x, y), (x + w, y + h), main_color, 3)
+                
+                # Timer display
+                if status_text in DISTRACTION_THRESHOLDS:
+                    threshold = DISTRACTION_THRESHOLDS[status_text]
+                    timer_text = f"Person {i+1}: {status_text} ({duration:.1f}s/{threshold}s)"
+                else:
+                    timer_text = f"Person {i+1}: {status_text}"
+                
+                # Draw text background
+                font = cv.FONT_HERSHEY_SIMPLEX
+                font_scale = 0.7
+                thickness = 2
+                (text_width, text_height), baseline = cv.getTextSize(timer_text, font, font_scale, thickness)
+                
+                text_y = y - 10
+                if text_y < text_height + 10:
+                    text_y = y + h + text_height + 10
+                
+                # Semi-transparent background
+                overlay = image.copy()
+                cv.rectangle(overlay, (x, text_y - text_height - 5), (x + text_width + 10, text_y + 5), (0, 0, 0), -1)
+                cv.addWeighted(overlay, 0.7, image, 0.3, 0, image)
+                
+                cv.putText(image, timer_text, (x + 5, text_y), font, font_scale, main_color, thickness)
+            else:
+                # Static detection display
+                cv.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                
+                # Information overlay - gunakan layout file lokal
+                info_y_start = y + h + 10
+                box_padding = 10
+                line_height = 20
+                box_height = 4 * line_height
+                
+                overlay = image.copy()
+                cv.rectangle(overlay, 
+                            (x - box_padding, info_y_start - box_padding), 
+                            (x + w + box_padding, info_y_start + box_height), 
+                            (0, 0, 0), -1)
+                cv.addWeighted(overlay, 0.6, image, 0.4, 0, image)
+                
+                font = cv.FONT_HERSHEY_SIMPLEX
+                font_scale = 0.5
+                font_color = (255, 255, 255)
+                thickness = 1
+                
+                cv.putText(image, f"Person {i+1}", (x, info_y_start), 
+                        font, font_scale, (50, 205, 50), thickness+1)
+                cv.putText(image, f"Confidence: {confidence_score*100:.2f}%", 
+                        (x, info_y_start + line_height), font, font_scale, font_color, thickness)
+                cv.putText(image, f"Position: x:{x}, y:{y} Size: w:{w}, h:{h}", 
+                        (x, info_y_start + 2*line_height), font, font_scale, font_color, thickness)
+                
+                status_color = {
+                    "FOCUSED": (0, 255, 0),
+                    "NOT FOCUSED": (255, 165, 0),
+                    "YAWNING": (255, 255, 0),
+                    "SLEEPING": (0, 0, 255)
+                }
+                color = status_color.get(status_text, (0, 255, 0))
+                
+                cv.putText(image, f"Status: {status_text}", 
+                        (x, info_y_start + 3*line_height), font, font_scale, color, thickness)
+
+            # Alert handling dengan timing yang benar
+            should_alert = False
+            alert_message = ""
             
-            font = cv.FONT_HERSHEY_SIMPLEX
-            font_scale = 0.5
-            font_color = (255, 255, 255)
-            thickness = 1
+            if (mode == "video" and is_monitoring_active and status_text in DISTRACTION_THRESHOLDS and 
+                person_key in person_state_timers and status_text in person_state_timers[person_key]):
+                
+                if duration >= DISTRACTION_THRESHOLDS[status_text]:
+                    alert_cooldown = 5  # 5 second cooldown
+                    with monitoring_lock:
+                        if current_time - last_alert_time.get(person_key, 0) >= alert_cooldown:
+                            should_alert = True
+                            last_alert_time[person_key] = current_time
+                            
+                            # Generate alert message
+                            if status_text == 'SLEEPING':
+                                alert_message = f'Person {i+1} is sleeping - please wake up!'
+                            elif status_text == 'YAWNING':
+                                alert_message = f'Person {i+1} is yawning - please take a rest!'
+                            elif status_text == 'NOT FOCUSED':
+                                alert_message = f'Person {i+1} is not focused - please focus on screen!'
+                            
+                            # Store alert in session data
+                            if live_monitoring_active and session_data and session_data.get('start_time'):
+                                session_data['alerts'].append({
+                                    'timestamp': datetime.now().isoformat(),
+                                    'person': f"Person {i+1}",
+                                    'detection': status_text,
+                                    'message': alert_message,
+                                    'duration': int(duration)
+                                })
+                                print(f"Alert added: {alert_message} (Total alerts: {len(session_data['alerts'])})")
             
-            cv.putText(image, f"Person {i+1}", (x, info_y_start), 
-                    font, font_scale, (50, 205, 50), thickness+1)
-            cv.putText(image, f"Confidence: {confidence_score*100:.2f}%", 
-                    (x, info_y_start + line_height), font, font_scale, font_color, thickness)
-            cv.putText(image, f"Position: x:{x}, y:{y} Size: w:{w}, h:{h}", 
-                    (x, info_y_start + 2*line_height), font, font_scale, font_color, thickness)
-            
-            status_color = {
-                "FOCUSED": (0, 255, 0),
-                "NOT FOCUSED": (255, 165, 0),
-                "YAWNING": (255, 255, 0),
-                "SLEEPING": (0, 0, 255)
-            }
-            color = status_color.get(status_text, (0, 255, 0))
-            
-            cv.putText(image, f"Status: {status_text}", 
-                    (x, info_y_start + 3*line_height), font, font_scale, color, thickness)
-            
-            # Extract face region
+            # Save detected face - Railway optimized path
             face_img = image[y:y+h, x:x+w]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             face_filename = f"person_{i+1}_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
             face_path = os.path.join(application.config['DETECTED_FOLDER'], face_filename)
             
             if face_img.size > 0:
-                cv.imwrite(face_path, face_img)
+                try:
+                    cv.imwrite(face_path, face_img)
+                except Exception as e:
+                    print(f"Error saving face image: {str(e)}")
             
             detections.append({
                 "id": i+1,
@@ -378,10 +512,11 @@ def detect_persons_with_attention(image, mode="image"):
                 "bbox": [x, y, w, h],
                 "image_path": f"/static/detected/{face_filename}",
                 "status": status_text,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "duration": duration if mode == "video" else 0
             })
     
-    # Add detection count
+    # Display detection count
     if detections:
         cv.putText(image, f"Total persons detected: {len(detections)}", 
                   (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -391,41 +526,8 @@ def detect_persons_with_attention(image, mode="image"):
     
     return image, detections
 
-def calculate_actual_distraction_time_from_sessions(person_distraction_sessions):
-    """FIXED: Calculate actual distraction time dari continuous sessions, bukan accumulated alerts"""
-    distraction_times = {
-        'unfocused_time': 0,
-        'yawning_time': 0,
-        'sleeping_time': 0
-    }
-    
-    current_time = time.time()
-    
-    for person_key, sessions in person_distraction_sessions.items():
-        for distraction_type, session_data in sessions.items():
-            if distraction_type == 'NOT FOCUSED':
-                total_time = session_data.get('total_duration', 0)
-                # Add current session time if still active
-                if session_data.get('start_time'):
-                    total_time += (current_time - session_data['start_time'])
-                distraction_times['unfocused_time'] += total_time
-                
-            elif distraction_type == 'YAWNING':
-                total_time = session_data.get('total_duration', 0)
-                if session_data.get('start_time'):
-                    total_time += (current_time - session_data['start_time'])
-                distraction_times['yawning_time'] += total_time
-                
-            elif distraction_type == 'SLEEPING':
-                total_time = session_data.get('total_duration', 0)
-                if session_data.get('start_time'):
-                    total_time += (current_time - session_data['start_time'])
-                distraction_times['sleeping_time'] += total_time
-    
-    return distraction_times
-
 def calculate_distraction_time_from_alerts(alerts):
-    """FIXED: Calculate actual distraction time berdasarkan alert history dengan improved logic"""
+    """Calculate actual distraction time based on alert history - FIXED VERSION dari file lokal"""
     distraction_times = {
         'unfocused_time': 0,
         'yawning_time': 0,
@@ -435,45 +537,40 @@ def calculate_distraction_time_from_alerts(alerts):
     if not alerts:
         return distraction_times
     
-    # FIXED: Group alerts by person and distraction type untuk proper session tracking
-    person_sessions = {}
+    # Group alerts by person and distraction type untuk proper accumulation
+    person_distractions = {}
     
     for alert in alerts:
         person = alert.get('person', 'Unknown')
         detection = alert.get('detection', 'Unknown')
         duration = alert.get('duration', 0)
-        timestamp = alert.get('timestamp', '')
         
-        if person not in person_sessions:
-            person_sessions[person] = {}
+        if person not in person_distractions:
+            person_distractions[person] = {}
         
-        if detection not in person_sessions[person]:
-            person_sessions[person][detection] = []
+        if detection not in person_distractions[person]:
+            person_distractions[person][detection] = []
         
-        person_sessions[person][detection].append({
-            'duration': duration,
-            'timestamp': timestamp
-        })
+        person_distractions[person][detection].append(duration)
     
-    # FIXED: Calculate total time untuk setiap distraction type dengan session logic
-    for person, detections in person_sessions.items():
-        for detection_type, alerts_list in detections.items():
+    # Calculate total time untuk setiap distraction type by SUMMING all durations
+    for person, distractions in person_distractions.items():
+        for detection_type, durations in distractions.items():
             if detection_type == 'NOT FOCUSED':
-                # FIXED: Use maximum duration dari session, bukan sum
-                max_duration = max([alert['duration'] for alert in alerts_list]) if alerts_list else 0
-                distraction_times['unfocused_time'] += max_duration
+                # Sum all unfocused durations untuk person ini
+                distraction_times['unfocused_time'] += sum(durations)
             elif detection_type == 'YAWNING':
-                max_duration = max([alert['duration'] for alert in alerts_list]) if alerts_list else 0
-                distraction_times['yawning_time'] += max_duration
+                # Sum all yawning durations untuk person ini
+                distraction_times['yawning_time'] += sum(durations)
             elif detection_type == 'SLEEPING':
-                max_duration = max([alert['duration'] for alert in alerts_list]) if alerts_list else 0
-                distraction_times['sleeping_time'] += max_duration
+                # Sum all sleeping durations untuk person ini
+                distraction_times['sleeping_time'] += sum(durations)
     
     return distraction_times
 
 def update_session_statistics(detections):
-    """FIXED: Update session statistics dengan improved calculation"""
-    global session_data, person_distraction_sessions
+    """Update session statistics based on current detections - dengan fixed calculation"""
+    global session_data
     
     if not detections:
         return
@@ -487,8 +584,8 @@ def update_session_statistics(detections):
                 len(detections)
             )
             
-            # FIXED: Update distraction times berdasarkan actual session tracking
-            distraction_times = calculate_actual_distraction_time_from_sessions(person_distraction_sessions)
+            # Update distraction times berdasarkan actual alert history - FIXED
+            distraction_times = calculate_distraction_time_from_alerts(session_data['alerts'])
             session_data['focus_statistics']['unfocused_time'] = distraction_times['unfocused_time']
             session_data['focus_statistics']['yawning_time'] = distraction_times['yawning_time']
             session_data['focus_statistics']['sleeping_time'] = distraction_times['sleeping_time']
@@ -590,8 +687,7 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
                     out.write(frame)
                     frames_written += 1
                     
-                if i % 10 == 0:  # Log every 10th frame
-                    print(f"FIXED: Processed frame {i+1}/{len(recording_frames)}, written {frames_written} video frames")
+                print(f"FIXED: Processed frame {i+1}/{len(recording_frames)}, written {frames_written} video frames")
             else:
                 print(f"FIXED WARNING: Skipping invalid frame {i+1}")
 
@@ -602,6 +698,19 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:  # Minimal size check
             file_size = os.path.getsize(output_path)
             print(f"FIXED SUCCESS: Recording created: {output_path} (size: {file_size} bytes)")
+            
+            # FIXED: Verify video duration using ffprobe if available
+            try:
+                import subprocess
+                result = subprocess.run(['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', 
+                                       '-of', 'csv=p=0', output_path], 
+                                     capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    video_duration = float(result.stdout.strip())
+                    print(f"FIXED: Verified video duration: {video_duration:.2f}s (expected: {actual_duration_seconds:.2f}s)")
+            except:
+                print("FIXED: ffprobe not available for duration verification")
+            
             return output_path
         else:
             print("FIXED ERROR: Failed to create session recording - file not created atau too small")
@@ -613,7 +722,7 @@ def create_session_recording_from_frames(recording_frames, output_path, session_
         return None
 
 def generate_pdf_report(session_data, output_path):
-    """FIXED: Generate PDF report dengan corrected focus accuracy calculation"""
+    """Generate PDF report untuk session dengan corrected focus accuracy calculation"""
     try:
         doc = SimpleDocTemplate(output_path, pagesize=A4)
         styles = getSampleStyleSheet()
@@ -651,9 +760,8 @@ def generate_pdf_report(session_data, output_path):
             total_session_seconds = 0
             duration_str = "N/A"
         
-        # FIXED: Get corrected time statistics dari actual session tracking
-        global person_distraction_sessions
-        distraction_times = calculate_actual_distraction_time_from_sessions(person_distraction_sessions)
+        # Get corrected time statistics dari alert history
+        distraction_times = calculate_distraction_time_from_alerts(session_data['alerts'])
         unfocused_time = distraction_times['unfocused_time']
         yawning_time = distraction_times['yawning_time']
         sleeping_time = distraction_times['sleeping_time']
@@ -851,10 +959,10 @@ def generate_pdf_report(session_data, output_path):
         story.append(Paragraph(footer_text, footer_style))
         
         doc.build(story)
-        print(f"FIXED: PDF report generated successfully: {output_path}")
+        print(f"PDF report generated successfully: {output_path}")
         return output_path
     except Exception as e:
-        print(f"FIXED ERROR: generating PDF report: {str(e)}")
+        print(f"Error generating PDF report: {str(e)}")
         traceback.print_exc()
         return None
 
@@ -1018,7 +1126,7 @@ def process_video_file(video_path):
     
     all_detections = []
     frame_count = 0
-    process_every_n_frames = 5  # Process setiap 5 frame untuk Railway optimization
+    process_every_n_frames = 5  # Process setiap 10 frame untuk Railway optimization
     
     while cap.isOpened():
         ret, frame = cap.read()
@@ -1124,7 +1232,7 @@ def webcam():
 
 @application.route('/start_monitoring', methods=['POST'])
 def start_monitoring():
-    global live_monitoring_active, session_data, recording_active, person_state_timers, person_current_state, last_alert_time, person_distraction_sessions
+    global live_monitoring_active, session_data, recording_active, person_state_timers, person_current_state, last_alert_time
     
     try:
         request_data = request.get_json() or {}
@@ -1158,16 +1266,12 @@ def start_monitoring():
                 'client_alerts': [],
                 'frame_counter': 0,  # FIXED: Consistent frame tracking
                 'frame_timestamps': [],  # FIXED: Track timing
-                'total_frames_processed': 0,  # FIXED: Total processing count
-                'distraction_sessions': {},  # FIXED: Track individual distraction sessions
-                'active_states': {}  # FIXED: Track current active states per person
+                'total_frames_processed': 0  # FIXED: Total processing count
             }
             
-            # FIXED: Reset all tracking variables
             person_state_timers = {}
             person_current_state = {}
             last_alert_time = {}
-            person_distraction_sessions = {}
             
             live_monitoring_active = True
             recording_active = True
@@ -1186,7 +1290,7 @@ def start_monitoring():
 
 @application.route('/stop_monitoring', methods=['POST'])
 def stop_monitoring():
-    global live_monitoring_active, session_data, recording_active, person_distraction_sessions
+    global live_monitoring_active, session_data, recording_active
     
     try:
         request_data = request.get_json() or {}
@@ -1235,22 +1339,18 @@ def stop_monitoring():
                     'client_alerts': [],
                     'frame_counter': 0,
                     'frame_timestamps': [],
-                    'total_frames_processed': 0,
-                    'distraction_sessions': {},
-                    'active_states': {}
+                    'total_frames_processed': 0
                 }
             
             if not session_data.get('start_time'):
                 session_data['start_time'] = datetime.now() - timedelta(minutes=1)
             
-            # FIXED: Merge client alerts dengan server alerts - ensure consistency
+            # Merge client alerts dengan server alerts
             if client_alerts:
                 print(f"FIXED: Merging {len(client_alerts)} client alerts with server data")
                 session_data['client_alerts'] = client_alerts
                 
-                # FIXED: Clear existing alerts and rebuild from client untuk consistency
-                session_data['alerts'] = []
-                
+                # Convert client alerts ke server format dan merge
                 for client_alert in client_alerts:
                     server_alert = {
                         'timestamp': client_alert.get('time', datetime.now().isoformat()),
@@ -1262,15 +1362,6 @@ def stop_monitoring():
                     session_data['alerts'].append(server_alert)
                 
                 print(f"FIXED: Total alerts after merge: {len(session_data['alerts'])}")
-            
-            # FIXED: Close any remaining distraction sessions
-            current_time = time.time()
-            for person_key, sessions in person_distraction_sessions.items():
-                for distraction_type, session_info in sessions.items():
-                    if session_info.get('start_time'):
-                        session_duration = current_time - session_info['start_time']
-                        session_info['total_duration'] += session_duration
-                        print(f"FIXED: Closed {distraction_type} session for {person_key}: {session_duration:.1f}s")
             
             # Stop monitoring
             live_monitoring_active = False
@@ -1353,8 +1444,8 @@ def stop_monitoring():
 
 @application.route('/process_frame', methods=['POST'])
 def process_frame():
-    """FIXED: Enhanced frame processing dengan consistent storage, timing, dan improved face landmarks"""
-    global session_data, person_distraction_sessions
+    """FIXED: Enhanced frame processing dengan consistent storage dan timing"""
+    global session_data
     
     try:
         data = request.get_json()
@@ -1369,7 +1460,7 @@ def process_frame():
         if frame is None:
             return jsonify({"error": "Invalid frame data"}), 400
         
-        # FIXED: Process frame untuk detection dengan enhanced analysis dan face landmarks
+        # Process frame untuk detection dengan enhanced analysis
         processed_frame, detections = detect_persons_with_attention(frame, mode="video")
         
         # FIXED: Enhanced frame storage dengan consistent logic
@@ -1436,7 +1527,7 @@ def process_frame():
 # Additional utility routes
 @application.route('/sync_alerts', methods=['POST'])
 def sync_alerts():
-    """FIXED: Sync client-side alerts dengan server untuk consistency"""
+    """Sync client-side alerts dengan server"""
     try:
         request_data = request.get_json() or {}
         client_alerts = request_data.get('alerts', [])
@@ -1456,7 +1547,7 @@ def sync_alerts():
 
 @application.route('/get_monitoring_data')
 def get_monitoring_data():
-    """FIXED: Enhanced monitoring data endpoint dengan consistent alert history"""
+    """Enhanced monitoring data endpoint"""
     global session_data
     
     try:
@@ -1547,7 +1638,7 @@ def check_camera():
 
 @application.route('/health')
 def health_check():
-    """FIXED: Enhanced health check endpoint untuk Railway dengan frame info"""
+    """Enhanced health check endpoint untuk Railway dengan frame info"""
     try:
         with monitoring_lock:
             return jsonify({
@@ -1565,7 +1656,7 @@ def health_check():
                 "total_frames_processed": session_data.get('total_frames_processed', 0) if session_data else 0,  # FIXED: Added processing count
                 "frame_storage_ratio": len(session_data.get('recording_frames', [])) / max(1, session_data.get('total_frames_processed', 1)) * 100 if session_data else 0,  # FIXED: Storage ratio
                 "mediapipe_status": "initialized" if face_detection and face_mesh else "error",
-                "version": "railway_optimized_FIXED_v3.0_with_landmarks"
+                "version": "railway_optimized_FIXED_v2.0"
             })
     except Exception as e:
         print(f"FIXED: Health check error: {str(e)}")
@@ -1663,7 +1754,6 @@ if __name__ == "__main__":
         
         port = int(os.environ.get('PORT', 5000))
         print(f"FIXED: Starting Railway Optimized Smart Focus Alert application on port {port}")
-        print("FIXED: Enhanced face landmarks and improved duration calculation")
         print("FIXED: Frame storage configuration:")
         print(f"  - Storage interval: every {FRAME_STORAGE_INTERVAL} frames")
         print(f"  - Max stored frames: {MAX_STORED_FRAMES}")
