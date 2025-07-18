@@ -1368,7 +1368,13 @@ def stop_monitoring():
                 
                 if frame_count > 0:
                     print(f"Creating video from {frame_count} recorded frames")
-                    video_result = create_session_recording_from_frames(session_data['recording_frames'], recording_path)
+                    video_result = create_session_recording_from_frames(
+                        session_data['recording_frames'],
+                        recording_path,
+                        session_data.get('start_time', datetime.now() - timedelta(seconds=10)),
+                        session_data.get('end_time', datetime.now())
+                    )
+
                     
                     if video_result and os.path.exists(recording_path):
                         response_data["video_file"] = f"/static/recordings/{os.path.basename(recording_path)}"
